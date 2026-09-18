@@ -10,3 +10,4 @@ nav:
   - Decisions:
       - ADR-0001 Scope and architecture: adr/0001-poc-scope-and-architecture.md
       - ADR-0002 FinePDF access: adr/0002-finepdf-access-via-parquet-row-groups.md
+      - ADR-0003 Provenance without redistribution: adr/0003-provenance-without-redistribution.md

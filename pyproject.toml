@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28",
     "pyarrow>=18.0",
+    "datasets>=3.2",
     "pypdf>=5.1",
     "pillow>=11.0",
     "huggingface-hub>=0.27",
@@ -104,4 +105,8 @@ pytest_add_cli_args_test_selection = [
     "tests/unit/test_normalisation.py",
     "tests/unit/test_records.py",
     "tests/unit/test_verification.py",
+    "tests/unit/test_dedup.py",
+    "tests/unit/test_stats.py",
+    "tests/unit/test_rows.py",
+    "tests/unit/test_card.py",
 ]

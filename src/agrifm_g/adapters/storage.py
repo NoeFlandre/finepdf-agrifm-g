@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
@@ -61,6 +62,7 @@ def _write_document(out_dir: Path, payload: DocumentPayload) -> DocumentRecord:
         doc_id=doc_id,
         source_url=payload.source_url,
         pdf_path=pdf_path,
+        pdf_sha256=hashlib.sha256(payload.pdf_bytes).hexdigest(),
         text=payload.text,
         images=images,
     )
@@ -70,7 +72,13 @@ def _write_image(out_dir: Path, doc_id: str, position: int, image: ExtractedImag
     path = f"images/{doc_id}/{position:03d}.{image.format}"
     _write_bytes(out_dir / path, image.data)
     return ImageRef(
-        path=path, page=image.page, width=image.width, height=image.height, format=image.format
+        path=path,
+        page=image.page,
+        width=image.width,
+        height=image.height,
+        format=image.format,
+        sha256=image.sha256,
+        n_colours=image.n_colours,
     )
 
 
@@ -83,3 +91,11 @@ def _reject_collisions(records: Sequence[DocumentRecord]) -> None:
     ids = [record.doc_id for record in records]
     if len(set(ids)) != len(ids):
         raise ValueError("two source documents normalise to the same doc_id")
+
+
+def file_hashes(out_dir: Path) -> dict[str, str]:
+    """SHA-256 of every stored PDF, keyed by dataset-relative path."""
+    return {
+        str(path.relative_to(out_dir)): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in (out_dir / "pdfs").glob("*.pdf")
+    }

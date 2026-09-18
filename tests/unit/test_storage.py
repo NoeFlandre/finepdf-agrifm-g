@@ -15,7 +15,13 @@ def payload(doc_id="<urn:uuid:AB>", n_images=1):
         pdf_bytes=b"%PDF-1.4 fake",
         images=tuple(
             ExtractedImage(
-                page=i, width=100, height=100, format="png", data=b"\x89PNG" + bytes([i])
+                page=i,
+                width=100,
+                height=100,
+                format="png",
+                data=b"\x89PNG" + bytes([i]),
+                sha256=str(i) * 64,
+                n_colours=6,
             )
             for i in range(n_images)
         ),

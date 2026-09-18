@@ -14,9 +14,10 @@ from agrifm_g.adapters.finepdf import (
     ParquetRowSource,
     RowSource,
 )
+from agrifm_g.adapters.packaging import package_dataset
 from agrifm_g.adapters.pdfsource import CachingPdfFetcher
-from agrifm_g.adapters.publish import publish_dataset, write_dataset_card
-from agrifm_g.adapters.storage import existing_files, read_records
+from agrifm_g.adapters.publish import publish_dataset
+from agrifm_g.adapters.storage import existing_files, file_hashes, read_records
 from agrifm_g.domain.verification import verify_records
 from agrifm_g.pipeline import Manifest, build_dataset, build_manifest
 
@@ -48,6 +49,15 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--cache", type=Path, default=Path(".cache/pdfs"))
     build.set_defaults(run=_run_build)
 
+    package = commands.add_parser(
+        "package", help="turn a build directory into publishable parquet shards"
+    )
+    package.add_argument("--dataset", type=Path, default=Path("out/dataset"))
+    package.add_argument("--out", type=Path, default=Path("out/publish"))
+    package.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
+    package.add_argument("--repo", required=True)
+    package.set_defaults(run=_run_package)
+
     verify = commands.add_parser("verify", help="check a dataset's schema and file references")
     verify.add_argument("--dataset", type=Path, required=True)
     verify.set_defaults(run=_run_verify)
@@ -56,7 +66,6 @@ def _parser() -> argparse.ArgumentParser:
     publish.add_argument("--dataset", type=Path, required=True)
     publish.add_argument("--repo", required=True)
     publish.add_argument("--dry-run", action="store_true")
-    publish.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     publish.set_defaults(run=_run_publish)
     return parser
 
@@ -92,8 +101,25 @@ def _run_build(args: argparse.Namespace) -> int:
     return 0
 
 
+def _run_package(args: argparse.Namespace) -> int:
+    manifest = Manifest.from_json(json.loads(args.manifest.read_text(encoding="utf-8")))
+    args.out.mkdir(parents=True, exist_ok=True)
+    package = package_dataset(
+        args.dataset,
+        args.out,
+        repo_id=args.repo,
+        records=read_records(args.dataset),
+        sampled=manifest.size,
+        seed=manifest.seed,
+    )
+    print(f"packaged {package.n_rows} rows in {package.n_shards} shard(s) in {args.out}")
+    return 0
+
+
 def _run_verify(args: argparse.Namespace) -> int:
-    problems = verify_records(read_records(args.dataset), existing_files(args.dataset))
+    problems = verify_records(
+        read_records(args.dataset), existing_files(args.dataset), file_hashes(args.dataset)
+    )
     for problem in problems:
         print(problem)
     print("ok" if not problems else f"{len(problems)} problems")
@@ -101,8 +127,6 @@ def _run_verify(args: argparse.Namespace) -> int:
 
 
 def _run_publish(args: argparse.Namespace) -> int:
-    seed = Manifest.from_json(json.loads(args.manifest.read_text(encoding="utf-8"))).seed
-    write_dataset_card(args.dataset, args.repo, read_records(args.dataset), manifest_seed=seed)
     url = publish_dataset(args.dataset, args.repo, dry_run=args.dry_run)
     print(f"{'dry run: would publish to' if args.dry_run else 'published'} {url}")
     return 0

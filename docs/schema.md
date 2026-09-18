@@ -1,40 +1,48 @@
 # Dataset schema
 
-A build produces one directory:
+## Published (Hugging Face)
+
+Parquet, **one row per image**, with `datasets.Features` so the Hub viewer renders it:
+
+| field | type | meaning |
+| --- | --- | --- |
+| `image` | `Image()` | the PNG itself, decoded by `datasets` |
+| `doc_id` | string | FinePDF id, lowercased and reduced to `[a-z0-9-_]` |
+| `page` | int32 | 0-based page the image was embedded in |
+| `image_index` | int32 | 0-based position within its document |
+| `width`, `height` | int32 | pixels |
+| `image_sha256` | string | content hash, unique across the dataset |
+| `image_path` | string | path the image had in the build directory |
+| `source_url` | string | where the PDF was crawled from — the provenance record |
+| `pdf_sha256` | string | hash of the retrieved PDF, so a refetch is verifiable |
+| `text` | string | FinePDF's extracted text for the whole document |
+| `n_images_in_doc` | int32 | images that document contributed |
+| `extraction_version` | int32 | bumped when extraction changes stored bytes |
+
+```python
+from datasets import load_dataset
+
+ds = load_dataset("NoeFlandre/agrifm-g-finepdf-poc", split="train")
+ds[0]["image"]  # PIL.Image
+```
+
+Alongside it: `stats.json` (the numbers in the card) and the generated `README.md`.
+
+## Build directory (local, not published)
+
+`build` writes a working directory that `package` consumes:
 
 ```
 out/dataset/
 ├── metadata.jsonl        one JSON record per document
-├── pdfs/<doc_id>.pdf     the source document as retrieved
+├── pdfs/<doc_id>.pdf     the retrieved document, kept locally only
 └── images/<doc_id>/000.png, 001.png, …
 ```
 
-## One record
+## What is dropped
 
-```json
-{
-  "doc_id": "urn_uuid_3aa6728e-f35e-437a-a520-56fb2fab71c9",
-  "source_url": "https://example.org/report.pdf",
-  "pdf_path": "pdfs/urn_uuid_3aa6728e-….pdf",
-  "text": "…the FinePDF extraction of the document…",
-  "images": [
-    {"path": "images/urn_uuid_3aa6728e-…/000.png", "page": 0,
-     "width": 960, "height": 540, "format": "png"}
-  ],
-  "n_images": 1,
-  "extraction_version": 1
-}
-```
+Before an image is published it must survive, in order: 32 px minimum on each side,
+more than one colour, an aspect ratio no wider than 20:1, and not being a byte-identical
+duplicate of an image already kept. Every drop is counted by reason in `stats.json`.
 
-| Field | Meaning |
-| --- | --- |
-| `doc_id` | FinePDF id, lowercased and reduced to `[a-z0-9-_]` |
-| `source_url` | where the PDF was crawled from — the provenance record |
-| `pdf_path` | dataset-relative path to the stored PDF |
-| `text` | FinePDF's own extracted text, carried through unchanged |
-| `images` | every usable embedded raster image, in page order, re-encoded to PNG |
-| `n_images` | derived from `images`, never stored independently |
-| `extraction_version` | bumped whenever extraction changes the stored bytes |
-
-Images smaller than 32 px on either side are dropped as rules, bullets and artefacts.
-Everything else is kept: **no agricultural filtering happens at this stage**.
+**No agricultural filtering happens at any stage yet.**

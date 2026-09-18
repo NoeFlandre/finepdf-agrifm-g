@@ -18,9 +18,18 @@ def a_record(n_images: int = 2) -> DocumentRecord:
         doc_id="doc-1",
         source_url="https://example.org/a.pdf",
         pdf_path="pdfs/doc-1.pdf",
+        pdf_sha256="b" * 64,
         text="hello",
         images=tuple(
-            ImageRef(path=f"images/doc-1/{i:03d}.png", page=i, width=100, height=120, format="png")
+            ImageRef(
+                path=f"images/doc-1/{i:03d}.png",
+                page=i,
+                width=100,
+                height=120,
+                format="png",
+                sha256=str(i) * 64,
+                n_colours=8,
+            )
             for i in range(n_images)
         ),
     )
@@ -41,14 +50,23 @@ def test_serialisation_carries_the_extraction_version():
 
 def test_an_empty_doc_id_is_rejected():
     with pytest.raises(ValueError):
-        DocumentRecord(doc_id="", source_url="u", pdf_path="p", text="t", images=())
+        DocumentRecord(
+            doc_id="", source_url="u", pdf_path="p", pdf_sha256="b" * 64, text="t", images=()
+        )
 
 
 def test_duplicate_image_paths_are_rejected():
-    duplicate = ImageRef(path="images/a.png", page=0, width=10, height=10, format="png")
+    duplicate = ImageRef(
+        path="images/a.png", page=0, width=10, height=10, format="png", sha256="a" * 64, n_colours=4
+    )
     with pytest.raises(ValueError):
         DocumentRecord(
-            doc_id="d", source_url="u", pdf_path="p", text="t", images=(duplicate, duplicate)
+            doc_id="d",
+            source_url="u",
+            pdf_path="p",
+            pdf_sha256="b" * 64,
+            text="t",
+            images=(duplicate, duplicate),
         )
 
 
@@ -62,9 +80,18 @@ def test_round_trip_is_identity_and_n_images_matches(doc_id, text, n_images):
         doc_id=doc_id,
         source_url="https://example.org/a.pdf",
         pdf_path="pdfs/x.pdf",
+        pdf_sha256="b" * 64,
         text=text,
         images=tuple(
-            ImageRef(path=f"images/x/{i}.png", page=i, width=1, height=1, format="png")
+            ImageRef(
+                path=f"images/x/{i}.png",
+                page=i,
+                width=1,
+                height=1,
+                format="png",
+                sha256=str(i) * 64,
+                n_colours=3,
+            )
             for i in range(n_images)
         ),
     )
@@ -78,10 +105,11 @@ def test_a_malformed_payload_is_rejected():
 
 
 GOLDEN = (
-    '{"doc_id": "doc-1", "extraction_version": 1, '
-    '"images": [{"format": "png", "height": 120, "page": 0, '
-    '"path": "images/doc-1/000.png", "width": 100}], '
+    '{"doc_id": "doc-1", "extraction_version": 2, '
+    '"images": [{"format": "png", "height": 120, "n_colours": 8, "page": 0, '
+    '"path": "images/doc-1/000.png", "sha256": "' + "0" * 64 + '", "width": 100}], '
     '"n_images": 1, "pdf_path": "pdfs/doc-1.pdf", '
+    '"pdf_sha256": "' + "b" * 64 + '", '
     '"source_url": "https://example.org/a.pdf", "text": "hello"}'
 )
 
@@ -92,6 +120,11 @@ def test_serialisation_matches_the_golden_line_exactly():
 
 def test_non_ascii_text_is_stored_as_utf8_not_escaped():
     record = DocumentRecord(
-        doc_id="d", source_url="u", pdf_path="p", text="blé récolté 麦", images=()
+        doc_id="d",
+        source_url="u",
+        pdf_path="p",
+        pdf_sha256="b" * 64,
+        text="blé récolté 麦",
+        images=(),
     )
     assert "blé récolté 麦" in record_to_json(record)

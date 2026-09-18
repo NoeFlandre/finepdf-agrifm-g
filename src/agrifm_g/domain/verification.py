@@ -2,19 +2,35 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from agrifm_g.domain.records import DocumentRecord
 
 
-def verify_records(records: Iterable[DocumentRecord], existing_files: set[str]) -> list[str]:
-    """Return one human-readable problem per broken reference; empty means valid."""
+def verify_records(
+    records: Iterable[DocumentRecord],
+    existing_files: set[str],
+    hashes: Mapping[str, str] | None = None,
+) -> list[str]:
+    """Return one human-readable problem per broken reference; empty means valid.
+
+    `hashes` maps a dataset-relative path to the SHA-256 of the bytes actually on disk.
+    It is optional: a dataset published without its PDFs still verifies.
+    """
     problems: list[str] = []
     seen: set[str] = set()
     for record in records:
         problems.extend(_duplicate_problems(record, seen))
         problems.extend(_missing_file_problems(record, existing_files))
+        problems.extend(_hash_problems(record, hashes or {}))
     return problems
+
+
+def _hash_problems(record: DocumentRecord, hashes: Mapping[str, str]) -> list[str]:
+    actual = hashes.get(record.pdf_path)
+    if actual is None or actual == record.pdf_sha256:
+        return []
+    return [f"{record.doc_id}: pdf checksum mismatch for {record.pdf_path}"]
 
 
 def _duplicate_problems(record: DocumentRecord, seen: set[str]) -> list[str]:

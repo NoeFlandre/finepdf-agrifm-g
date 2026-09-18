@@ -1,6 +1,7 @@
 UV ?= uv
+REPO ?= NoeFlandre/agrifm-g-finepdf-poc
 
-.PHONY: install lint format typecheck test acceptance property arch crap mutation docs smoke smoke-offline qa
+.PHONY: install lint format typecheck test acceptance property arch crap mutation docs smoke smoke-offline publish-check qa
 
 install:
 	$(UV) sync --all-groups
@@ -32,7 +33,6 @@ crap:
 	$(UV) run python scripts/crap.py
 
 mutation:
-	rm -rf mutants
 	$(UV) run python scripts/mutation.py
 
 docs:
@@ -44,6 +44,10 @@ smoke-offline:
 smoke:
 	$(UV) run agrifm-g build --manifest data/sample_manifest.json --out out/smoke --cache .cache/pdfs
 	$(UV) run agrifm-g verify --dataset out/smoke
+	$(UV) run agrifm-g package --dataset out/smoke --out out/smoke-publish --repo $(REPO)
+
+publish-check:
+	AGRIFM_G_INTEGRATION=1 $(UV) run pytest tests/integration/test_published_dataset.py -q
 
 qa: lint typecheck test property acceptance arch crap mutation docs smoke-offline
 	@echo "gauntlet passed"

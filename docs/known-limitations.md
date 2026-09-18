@@ -10,11 +10,17 @@ The POC samples from the first row group (1000 documents) of one English FinePDF
 *Cleanup:* sample row groups and shards as well as rows, once the pipeline is worth
 scaling.
 
+## The published dataset is parquet; the PDFs are not redistributed
+
+Rows carry `source_url` and `pdf_sha256` instead of the source file
+([ADR-0003](adr/0003-provenance-without-redistribution.md)). A byte-exact rebuild
+therefore depends on the open web still serving those URLs, which it largely does not.
+
 ## Roughly a quarter of documents survive the fetch
 
 FinePDF records the URL a document was crawled from, not its bytes. Crawls date from
-2023, so many URLs are dead, moved, or now behind a login. In the committed run, 16 of
-60 sampled documents were retrieved and parsed. The pipeline skips the rest silently.
+2023, so many URLs are dead, moved, or now behind a login. In the committed run, 16 of 60 sampled
+documents were retrieved and parsed (26.7 %), yielding 23 published images after filtering. The pipeline skips the rest silently.
 *Cleanup:* fall back to a web archive, and report a per-run yield instead of dropping
 failures on the floor.
 
@@ -42,8 +48,9 @@ relevance filter is a function from a record to a decision.
 
 - **Mutation testing covers the domain only.** Adapters are exercised through fakes and
   fixtures instead; mutating I/O code would mostly measure the fakes.
-- **Nine mutants survive, all equivalent**: rewritten exception *messages*, and
-  `ensure_ascii=None` (falsy, so identical to `False`). The floor is set at 90 % rather
-  than 100 % for exactly this reason.
+- **Twenty-one mutants survive out of 636 (96.7 % killed), all equivalent**: rewritten
+  exception *messages*, `ensure_ascii=None` (falsy, so identical to `False`), rounding
+  digits that do not change any rendered value, and rewrites of size-category *labels*.
+  The floor is set at 90 % rather than 100 % for exactly this reason.
 - **The local venv lives outside the repository** in development because the working
   copy sits on a slow external volume. CI uses the default `.venv`.

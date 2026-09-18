@@ -1,0 +1,91 @@
+from hypothesis import given
+from hypothesis import strategies as st
+
+from agrifm_g.domain.dedup import DropReason, deduplicate, keep_reason
+from agrifm_g.domain.records import DocumentRecord, ImageRef
+
+
+def image(path="images/d/000.png", sha="a" * 64, width=100, height=100, colours=2):
+    return ImageRef(
+        path=path,
+        page=0,
+        width=width,
+        height=height,
+        format="png",
+        sha256=sha,
+        n_colours=colours,
+    )
+
+
+def record(doc_id="d1", images=()):
+    return DocumentRecord(
+        doc_id=doc_id,
+        source_url="https://example.org/a.pdf",
+        pdf_path=f"pdfs/{doc_id}.pdf",
+        pdf_sha256="b" * 64,
+        text="t",
+        images=images,
+    )
+
+
+def test_a_single_colour_image_is_dropped():
+    assert keep_reason(image(colours=1)) is DropReason.SINGLE_COLOUR
+
+
+def test_an_extreme_aspect_ratio_is_dropped():
+    assert keep_reason(image(width=2000, height=40)) is DropReason.ASPECT_RATIO
+
+
+def test_a_normal_image_is_kept():
+    assert keep_reason(image()) is None
+
+
+def test_identical_images_are_kept_once_across_documents():
+    shared = image(sha="c" * 64)
+    kept, dropped = deduplicate([record("d1", (shared,)), record("d2", (shared,))])
+    assert [len(r.images) for r in kept] == [1, 0]
+    assert dropped[DropReason.DUPLICATE] == 1
+
+
+def test_drop_reasons_are_counted_not_silent():
+    images = (image(sha="1" * 64, colours=1), image(path="images/d/001.png", sha="2" * 64))
+    kept, dropped = deduplicate([record("d1", images)])
+    assert len(kept[0].images) == 1
+    assert dropped[DropReason.SINGLE_COLOUR] == 1
+
+
+@given(st.lists(st.integers(min_value=0, max_value=3), min_size=0, max_size=8))
+def test_deduplication_is_idempotent_and_hashes_are_unique(shas):
+    images = tuple(
+        image(path=f"images/d/{i:03d}.png", sha=str(value) * 64) for i, value in enumerate(shas)
+    )
+    once, _ = deduplicate([record("d1", images)])
+    twice, _ = deduplicate(once)
+    assert once == twice
+    seen = [i.sha256 for r in once for i in r.images]
+    assert len(seen) == len(set(seen))
+
+
+def test_the_aspect_ratio_boundary_is_exact():
+    assert keep_reason(image(width=2000, height=100)) is None  # exactly 20:1 is kept
+    assert keep_reason(image(width=2001, height=100)) is DropReason.ASPECT_RATIO
+    assert keep_reason(image(width=100, height=2001)) is DropReason.ASPECT_RATIO
+
+
+def test_two_colours_is_enough_to_be_kept():
+    assert keep_reason(image(colours=2)) is None
+    assert keep_reason(image(colours=0)) is DropReason.SINGLE_COLOUR
+
+
+def test_a_zero_height_image_is_dropped_rather_than_dividing_by_zero():
+    assert keep_reason(image(width=10, height=0)) is DropReason.ASPECT_RATIO
+
+
+def test_repeated_drops_of_the_same_reason_accumulate():
+    images = (
+        image(path="images/d/000.png", sha="1" * 64, colours=1),
+        image(path="images/d/001.png", sha="2" * 64, colours=1),
+        image(path="images/d/002.png", sha="3" * 64, colours=1),
+    )
+    _, dropped = deduplicate([record("d1", images)])
+    assert dropped[DropReason.SINGLE_COLOUR] == 3

@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-EXTRACTION_VERSION = 1
+EXTRACTION_VERSION = 2
 """Bumped whenever extraction changes in a way that alters stored bytes."""
 
 
@@ -19,6 +19,8 @@ class ImageRef:
     width: int
     height: int
     format: str
+    sha256: str
+    n_colours: int
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +30,7 @@ class DocumentRecord:
     doc_id: str
     source_url: str
     pdf_path: str
+    pdf_sha256: str
     text: str
     images: tuple[ImageRef, ...]
 
@@ -49,6 +52,7 @@ def record_to_json(record: DocumentRecord) -> str:
         "doc_id": record.doc_id,
         "source_url": record.source_url,
         "pdf_path": record.pdf_path,
+        "pdf_sha256": record.pdf_sha256,
         "text": record.text,
         "images": [
             {
@@ -57,6 +61,8 @@ def record_to_json(record: DocumentRecord) -> str:
                 "width": image.width,
                 "height": image.height,
                 "format": image.format,
+                "sha256": image.sha256,
+                "n_colours": image.n_colours,
             }
             for image in record.images
         ],
@@ -73,6 +79,7 @@ def record_from_json(payload: dict[str, Any]) -> DocumentRecord:
             doc_id=payload["doc_id"],
             source_url=payload["source_url"],
             pdf_path=payload["pdf_path"],
+            pdf_sha256=payload["pdf_sha256"],
             text=payload["text"],
             images=tuple(
                 ImageRef(
@@ -81,6 +88,8 @@ def record_from_json(payload: dict[str, Any]) -> DocumentRecord:
                     width=image["width"],
                     height=image["height"],
                     format=image["format"],
+                    sha256=image["sha256"],
+                    n_colours=image["n_colours"],
                 )
                 for image in payload["images"]
             ),

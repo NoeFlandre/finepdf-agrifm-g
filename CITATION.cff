@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+title: AGRIFM-G FinePDF extraction pipeline
+message: If you use this pipeline or the dataset it produces, please cite it.
+type: software
+authors:
+  - family-names: Flandre
+    given-names: Noé
+repository-code: https://github.com/NoeFlandre/finepdf-agrifm-g
+url: https://huggingface.co/datasets/NoeFlandre/agrifm-g-finepdf-poc
+license: CC-BY-4.0
+year: 2026

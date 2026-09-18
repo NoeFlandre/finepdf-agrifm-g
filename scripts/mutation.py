@@ -7,6 +7,7 @@ replace `ensure_ascii=False` with an equally falsy value. See docs/known-limitat
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -20,6 +21,9 @@ def run(*arguments: str) -> None:
 
 
 def main() -> int:
+    # mutmut caches results in a working copy; a stale one hides new code.
+    # hypothesis writes into it while mutants run, so removal must tolerate that.
+    shutil.rmtree("mutants", ignore_errors=True)
     run("run")
     run("export-cicd-stats")
     if not STATS.exists():

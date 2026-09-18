@@ -17,7 +17,15 @@ def a_dataset(path):
                 text="hello",
                 pdf_bytes=b"%PDF-1.4",
                 images=(
-                    ExtractedImage(page=0, width=50, height=50, format="png", data=b"\x89PNG"),
+                    ExtractedImage(
+                        page=0,
+                        width=50,
+                        height=50,
+                        format="png",
+                        data=b"\x89PNG",
+                        sha256="a" * 64,
+                        n_colours=6,
+                    ),
                 ),
             )
         ],
@@ -53,7 +61,7 @@ def test_help_lists_every_command(capsys):
     with pytest.raises(SystemExit):
         main(["--help"])
     out = capsys.readouterr().out
-    assert {"sample", "build", "verify", "publish"} <= set(out.split())
+    assert {"sample", "build", "package", "verify", "publish"} <= set(out.split())
 
 
 def test_sample_writes_a_manifest(tmp_path, monkeypatch):
@@ -117,3 +125,46 @@ def read_records_from(path):
     from agrifm_g.adapters.storage import read_records
 
     return read_records(path)
+
+
+def test_package_writes_parquet_and_a_card(tmp_path, fixtures):
+    from agrifm_g.adapters.extraction import extract_images
+    from agrifm_g.adapters.storage import DocumentPayload, write_dataset
+    from agrifm_g.pipeline import Manifest
+
+    build = tmp_path / "build"
+    write_dataset(
+        build,
+        [
+            DocumentPayload(
+                raw_doc_id="doc-1",
+                source_url="https://example.org/a.pdf",
+                text="hello",
+                pdf_bytes=(fixtures / "one_image.pdf").read_bytes(),
+                images=extract_images((fixtures / "one_image.pdf").read_bytes()),
+            )
+        ],
+    )
+    manifest = tmp_path / "m.json"
+    manifest.write_text(
+        Manifest(
+            dataset="d", config="c", split="train", seed=3, size=1, indices=(0,), doc_ids=("doc-1",)
+        ).to_json()
+    )
+    out = tmp_path / "publish"
+    code = main(
+        [
+            "package",
+            "--dataset",
+            str(build),
+            "--out",
+            str(out),
+            "--repo",
+            "me/x",
+            "--manifest",
+            str(manifest),
+        ]
+    )
+    assert code == 0
+    assert list((out / "data").glob("train-*.parquet"))
+    assert (out / "README.md").exists()

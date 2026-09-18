@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import io
 from dataclasses import dataclass
 from typing import Any
@@ -26,6 +27,8 @@ class ExtractedImage:
     height: int
     format: str
     data: bytes
+    sha256: str
+    n_colours: int
 
 
 def extract_images(pdf_bytes: bytes) -> tuple[ExtractedImage, ...]:
@@ -50,25 +53,33 @@ def _page_images(page_number: int, page: PageObject) -> list[ExtractedImage]:
         encoded = _as_png(item)
         if encoded is None:
             continue
-        width, height, data = encoded
+        width, height, colours, data = encoded
         if is_usable_image(width=width, height=height, n_bytes=len(data)):
             extracted.append(
                 ExtractedImage(
-                    page=page_number, width=width, height=height, format="png", data=data
+                    page=page_number,
+                    width=width,
+                    height=height,
+                    format="png",
+                    data=data,
+                    sha256=hashlib.sha256(data).hexdigest(),
+                    n_colours=colours,
                 )
             )
     return extracted
 
 
-def _as_png(item: ImageFile) -> tuple[int, int, bytes] | None:
-    """Re-encode to PNG so the dataset has exactly one image format."""
+def _as_png(item: ImageFile) -> tuple[int, int, int, bytes] | None:
+    """Re-encode to PNG, and count colours so flat filler can be recognised later."""
     # pypdf types this as Optional[PIL.Image]; the stub resolves to None for `ty`.
     image: Any = item.image
     if image is None:
         return None
     buffer = io.BytesIO()
     try:
-        image.convert("RGB").save(buffer, format="PNG", optimize=False)
+        rgb = image.convert("RGB")
+        rgb.save(buffer, format="PNG", optimize=False)
     except (OSError, ValueError):  # unsupported filters and colour spaces are skipped
         return None
-    return image.width, image.height, buffer.getvalue()
+    colours = rgb.getcolors(maxcolors=256)
+    return image.width, image.height, len(colours) if colours else 257, buffer.getvalue()

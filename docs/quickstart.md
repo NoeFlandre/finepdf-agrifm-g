@@ -24,13 +24,21 @@ uv run agrifm-g sample --size 60 --seed 20260918 --out data/sample_manifest.json
 
 Same seed, same documents.
 
-## Publish
+## Package and publish
+
+`build` produces a working directory (PDFs, loose PNGs, `metadata.jsonl`). `package` turns it
+into what is actually published: deduplicated parquet shards, `stats.json` and a generated card.
 
 ```bash
-HF_TOKEN=... uv run agrifm-g publish --dataset out/dataset --repo NoeFlandre/agrifm-g-finepdf-poc
+uv run agrifm-g package --dataset out/dataset --out out/publish \
+  --repo NoeFlandre/agrifm-g-finepdf-poc
+HF_TOKEN=... uv run agrifm-g publish --dataset out/publish \
+  --repo NoeFlandre/agrifm-g-finepdf-poc
+make publish-check
 ```
 
-Add `--dry-run` to print the target without uploading.
+Add `--dry-run` to `publish` to print the target without uploading. `publish-check` loads the
+live repo with `load_dataset` and fails if the published schema has drifted.
 
 ## Quality gauntlet
 
