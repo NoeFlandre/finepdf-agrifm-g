@@ -9,6 +9,9 @@ dependencies = [
     "pyarrow>=18.0",
     "datasets>=3.2",
     "pypdf>=5.1",
+    # pypdf needs this to read AES-encrypted PDFs; without it a single such
+    # document raises DependencyError and aborts a whole build.
+    "cryptography>=43.0",
     "pillow>=11.0",
     "huggingface-hub>=0.27",
 ]

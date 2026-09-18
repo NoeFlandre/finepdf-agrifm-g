@@ -1,3 +1,5 @@
+import pytest
+
 from agrifm_g.adapters.extraction import extract_images
 
 
@@ -35,3 +37,23 @@ def test_an_unreadable_pdf_is_reported_as_such(fixtures):
 
     with pytest.raises(ExtractionError):
         extract_images(b"this is not a pdf")
+
+
+def test_an_aes_encrypted_pdf_is_read_rather_than_crashing(fixtures):
+    """Regression: a single AES-encrypted document used to abort an entire build."""
+    images = extract_images((fixtures / "encrypted_aes.pdf").read_bytes())
+    assert [(image.width, image.height) for image in images] == [(120, 90)]
+
+
+def test_a_missing_crypto_backend_becomes_an_extraction_error(fixtures, monkeypatch):
+    """Regression: pypdf's DependencyError does not derive from PyPdfError."""
+    from pypdf.errors import DependencyError
+
+    import agrifm_g.adapters.extraction as extraction
+
+    def explode(*args, **kwargs):
+        raise DependencyError("cryptography>=3.1 is required for AES algorithm")
+
+    monkeypatch.setattr(extraction, "PdfReader", explode)
+    with pytest.raises(extraction.ExtractionError):
+        extract_images((fixtures / "one_image.pdf").read_bytes())

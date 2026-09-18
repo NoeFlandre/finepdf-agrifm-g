@@ -9,13 +9,18 @@ from typing import Any
 
 from pypdf import PageObject, PdfReader
 from pypdf._page import ImageFile
-from pypdf.errors import PyPdfError
+from pypdf.errors import DependencyError, PyPdfError
 
 from agrifm_g.domain.normalisation import is_usable_image
 
 
 class ExtractionError(RuntimeError):
-    """The bytes handed over are not a PDF we can read."""
+    """The bytes handed over are not a PDF we can read.
+
+    `DependencyError` is listed explicitly because pypdf does not derive it from
+    `PyPdfError`: an encrypted document raised it straight through an earlier version of
+    this function and took a 350-document build down with it.
+    """
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,7 +41,7 @@ def extract_images(pdf_bytes: bytes) -> tuple[ExtractedImage, ...]:
     try:
         reader = PdfReader(io.BytesIO(pdf_bytes))
         pages = list(reader.pages)
-    except (PyPdfError, ValueError, OSError) as error:
+    except (PyPdfError, DependencyError, ValueError, OSError) as error:
         raise ExtractionError(f"unreadable PDF: {error}") from error
     return tuple(
         image for page_number, page in enumerate(pages) for image in _page_images(page_number, page)

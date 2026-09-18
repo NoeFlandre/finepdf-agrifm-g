@@ -7,6 +7,7 @@ nav:
   - Quickstart: quickstart.md
   - Dataset schema: schema.md
   - Relevance policy: relevance-policy.md
+  - The labelled set: labelling.md
   - Known limitations: known-limitations.md
   - Decisions:
       - ADR-0001 Scope and architecture: adr/0001-poc-scope-and-architecture.md

@@ -82,6 +82,13 @@ call, recorded so it is applied consistently and can be revisited as a unit.
 | **livestock** | **keep** when in an evidently agricultural setting (pasture, barn, paddock) | Family 2 covers farms and practices. Not phenotyping data, but operational agriculture. It is tagged `livestock` so it can be excluded from a plant-only mix. |
 | **drawings and botanical illustrations of plants** | **reject** | Rendered, not photographed. Falls under diagrams. |
 
+## Open rulings after the first labelling pass
+
+The first 567 labelled images raised five classes this policy did not anticipate. They are
+recorded as `borderline` in the label set and listed in [the labelled set](labelling.md);
+until they are ruled on, the labels that depend on them are provisional: **silviculture**,
+**fungi**, **wild (uncultivated) vegetation**, **people-in-a-field**, and **woody biomass**.
+
 ## Precedence
 
 When rules collide, apply in this order:
