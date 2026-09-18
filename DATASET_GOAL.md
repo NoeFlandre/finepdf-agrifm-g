@@ -13,3 +13,25 @@ Exclude:
 - Satellite/remote-sensing imagery
 - Icons, diagrams, plots and non-photographic figures
 - Generic images unrelated to agriculture or phenotyping
+
+## Dataset Types Sought
+
+The corpus is built from three **complementary** dataset families. The objective is
+complementarity, not raw image count.
+
+### 1. Pure phenotyping
+Precise images of plants, organs, canopies and plots, acquired via UAV, ground-based
+platforms, greenhouses, etc.
+*Profile: disparate, condensed, precise.*
+
+### 2. Operational agricultural images
+Photos of farms, tools, machinery and practices (grafting, pruning, irrigation,
+harvesting, etc.).
+*Profile: disparate, moderately condensed, diverse.*
+
+### 3. Niche datasets
+Infrequent species, rare crops, or very fine-grained taxonomies.
+*Profile: disparate, sparsely condensed, moderately diverse.*
+
+**Selection principle:** prefer datasets that fill gaps across these three families
+rather than maximizing the total number of images.
