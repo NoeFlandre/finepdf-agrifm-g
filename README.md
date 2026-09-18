@@ -20,6 +20,7 @@ uv run agrifm-g package --dataset out/dataset --out out/publish --repo <hf-repo>
 parquet shards with an `Image()` column, generated `stats.json` and a generated card.
 
 - Published sample: <https://huggingface.co/datasets/NoeFlandre/finepdf-agrifm-g>
+- What we actually want to keep: [relevance policy](docs/relevance-policy.md)
 - Documentation: `uv run mkdocs serve`
 - Full quality gauntlet: `make qa`
 

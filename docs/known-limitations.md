@@ -31,7 +31,9 @@ symptoms and field scenes; excluding satellite imagery, icons, diagrams and plot
 **deferred**. The POC extracts every usable raster image from every document it can read.
 The images in the published sample are therefore mostly *not* agricultural.
 *Cleanup:* this is the next piece of work, and the reason the domain is kept pure: a
-relevance filter is a function from a record to a decision.
+relevance filter is a function from a record to a decision. What it should decide is now
+specified in the [relevance policy](relevance-policy.md); by that policy, **1 of the 43
+images extracted in the committed build is of interest**.
 
 ## Other deferred items
 
