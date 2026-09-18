@@ -11,7 +11,7 @@ from agrifm_g.adapters.packaging import features
 
 pytestmark = pytest.mark.integration
 
-REPO = os.environ.get("AGRIFM_G_REPO", "NoeFlandre/agrifm-g-finepdf-poc")
+REPO = os.environ.get("AGRIFM_G_REPO", "NoeFlandre/finepdf-agrifm-g")
 
 
 @pytest.fixture(scope="module")

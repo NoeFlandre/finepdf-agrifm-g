@@ -6,6 +6,6 @@ authors:
   - family-names: Flandre
     given-names: Noé
 repository-code: https://github.com/NoeFlandre/finepdf-agrifm-g
-url: https://huggingface.co/datasets/NoeFlandre/agrifm-g-finepdf-poc
+url: https://huggingface.co/datasets/NoeFlandre/finepdf-agrifm-g
 license: CC-BY-4.0
 year: 2026

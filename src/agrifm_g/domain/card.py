@@ -70,6 +70,9 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             "uv run agrifm-g package --dataset out/dataset --out out/publish --repo <repo>",
             "```",
             "",
+            "> Previously published as `NoeFlandre/agrifm-g-finepdf-poc`. The Hub redirects the"
+            " old name. It is still a proof of concept — see the section above.",
+            "",
             "## Provenance and licensing",
             "",
             "Every row keeps the `source_url` its document was crawled from and the `pdf_sha256` of"
@@ -91,7 +94,7 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             "## Citation",
             "",
             "```bibtex",
-            "@misc{agrifm_g_finepdf_poc,",
+            "@misc{finepdf_agrifm_g,",
             f"  title  = {{{repo_id}}},",
             "  author = {Flandre, No\\'e},",
             "  year   = {2026},",

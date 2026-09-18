@@ -22,7 +22,7 @@ Parquet, **one row per image**, with `datasets.Features` so the Hub viewer rende
 ```python
 from datasets import load_dataset
 
-ds = load_dataset("NoeFlandre/agrifm-g-finepdf-poc", split="train")
+ds = load_dataset("NoeFlandre/finepdf-agrifm-g", split="train")
 ds[0]["image"]  # PIL.Image
 ```
 

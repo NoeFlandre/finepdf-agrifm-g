@@ -79,6 +79,8 @@ uv run agrifm-g build   --manifest data/sample_manifest.json --out out/dataset
 uv run agrifm-g package --dataset out/dataset --out out/publish --repo <repo>
 ```
 
+> Previously published as `NoeFlandre/agrifm-g-finepdf-poc`. The Hub redirects the old name. It is still a proof of concept — see the section above.
+
 ## Provenance and licensing
 
 Every row keeps the `source_url` its document was crawled from and the `pdf_sha256` of the retrieved file. The underlying documents' own licences are **not resolved or audited**: the collection, extraction code and metadata are released under CC-BY-4.0, but the images inherit whatever terms their source documents carry. Treat this as research material, and check provenance before any redistribution. Takedown requests via the repository's issue tracker.
@@ -92,7 +94,7 @@ Every row keeps the `source_url` its document was crawled from and the `pdf_sha2
 ## Citation
 
 ```bibtex
-@misc{agrifm_g_finepdf_poc,
+@misc{finepdf_agrifm_g,
   title  = {me/thing},
   author = {Flandre, No\'e},
   year   = {2026},

@@ -1,5 +1,5 @@
 UV ?= uv
-REPO ?= NoeFlandre/agrifm-g-finepdf-poc
+REPO ?= NoeFlandre/finepdf-agrifm-g
 
 .PHONY: install lint format typecheck test acceptance property arch crap mutation docs smoke smoke-offline publish-check qa
 

@@ -31,9 +31,9 @@ into what is actually published: deduplicated parquet shards, `stats.json` and a
 
 ```bash
 uv run agrifm-g package --dataset out/dataset --out out/publish \
-  --repo NoeFlandre/agrifm-g-finepdf-poc
+  --repo NoeFlandre/finepdf-agrifm-g
 HF_TOKEN=... uv run agrifm-g publish --dataset out/publish \
-  --repo NoeFlandre/agrifm-g-finepdf-poc
+  --repo NoeFlandre/finepdf-agrifm-g
 make publish-check
 ```
 

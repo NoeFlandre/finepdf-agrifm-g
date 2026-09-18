@@ -19,7 +19,7 @@ uv run agrifm-g package --dataset out/dataset --out out/publish --repo <hf-repo>
 `build` produces a working directory; `package` produces what is published: deduplicated
 parquet shards with an `Image()` column, generated `stats.json` and a generated card.
 
-- Published sample: <https://huggingface.co/datasets/NoeFlandre/agrifm-g-finepdf-poc>
+- Published sample: <https://huggingface.co/datasets/NoeFlandre/finepdf-agrifm-g>
 - Documentation: `uv run mkdocs serve`
 - Full quality gauntlet: `make qa`
 
