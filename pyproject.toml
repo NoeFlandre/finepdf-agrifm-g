@@ -1,0 +1,107 @@
+[project]
+name = "agrifm-g"
+version = "0.1.0"
+description = "Minimal POC: build a tiny FinePDF-derived image+text dataset for AGRIFM-G."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx>=0.28",
+    "pyarrow>=18.0",
+    "pypdf>=5.1",
+    "pillow>=11.0",
+    "huggingface-hub>=0.27",
+]
+
+[project.scripts]
+agrifm-g = "agrifm_g.cli:main"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pytest-bdd>=8.1",
+    "hypothesis>=6.122",
+    "ruff>=0.8",
+    "ty>=0.0.1a1",
+    "import-linter>=2.1",
+    "mutmut>=3.2",
+    "radon>=6.0",
+    "mkdocs>=1.6",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agrifm_g"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C90", "ANN", "RET", "PTH"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 6
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN"]
+
+[tool.ty.src]
+include = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "integration: touches the network; skipped unless AGRIFM_G_INTEGRATION=1",
+]
+
+[tool.coverage.run]
+source = ["src/agrifm_g"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+
+[tool.importlinter]
+root_packages = ["agrifm_g"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Domain is pure: it must not import adapters, the CLI, or I/O libraries"
+type = "forbidden"
+source_modules = ["agrifm_g.domain"]
+forbidden_modules = [
+    "agrifm_g.adapters",
+    "agrifm_g.cli",
+    "httpx",
+    "pypdf",
+    "PIL",
+    "huggingface_hub",
+    "pathlib",
+]
+
+[[tool.importlinter.contracts]]
+name = "Adapters must not import the CLI"
+type = "forbidden"
+source_modules = ["agrifm_g.adapters"]
+forbidden_modules = ["agrifm_g.cli"]
+
+[[tool.importlinter.contracts]]
+name = "Layers"
+type = "layers"
+layers = ["agrifm_g.cli", "agrifm_g.pipeline", "agrifm_g.adapters", "agrifm_g.domain"]
+
+[tool.mutmut]
+source_paths = ["src/agrifm_g"]
+do_not_mutate = ["*/adapters/*", "*/cli.py", "*/pipeline.py"]
+pytest_add_cli_args_test_selection = [
+    "tests/unit/test_sampling.py",
+    "tests/unit/test_normalisation.py",
+    "tests/unit/test_records.py",
+    "tests/unit/test_verification.py",
+]

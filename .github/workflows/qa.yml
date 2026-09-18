@@ -1,0 +1,49 @@
+name: qa
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gauntlet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-groups --frozen
+
+      - name: baseline (tests as they stand)
+        run: uv run pytest -q
+
+      - name: ruff
+        run: make lint
+
+      - name: ty
+        run: make typecheck
+
+      - name: tests and coverage
+        run: make test
+
+      - name: property tests
+        run: make property
+
+      - name: acceptance tests
+        run: make acceptance
+
+      - name: architecture contracts
+        run: make arch
+
+      - name: CRAP
+        run: make crap
+
+      - name: mutation tests
+        run: make mutation
+
+      - name: docs build
+        run: make docs
+
+      - name: smoke test (offline, fixtures only)
+        run: make smoke-offline

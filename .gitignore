@@ -1,1 +1,14 @@
 .DS_Store
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+out/
+.cache/
+site/
+.mutmut-cache
+mutants/
+coverage.json
