@@ -47,6 +47,8 @@ def features() -> Features:
             "height": Value("int32"),
             "image_sha256": Value("string"),
             "image_path": Value("string"),
+            "n_colours": Value("int32"),
+            "edge_density": Value("float32"),
             "source_url": Value("string"),
             "pdf_sha256": Value("string"),
             "text": Value("string"),

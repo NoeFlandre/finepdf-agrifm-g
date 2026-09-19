@@ -7,6 +7,7 @@ from collections.abc import Iterable
 from dataclasses import replace
 from enum import StrEnum
 
+from agrifm_g.domain.appearance import ImageMetrics, rejection_rule
 from agrifm_g.domain.records import DocumentRecord, ImageRef
 
 MAX_ASPECT_RATIO = 20.0
@@ -19,6 +20,10 @@ class DropReason(StrEnum):
     DUPLICATE = "duplicate"
     SINGLE_COLOUR = "single_colour"
     ASPECT_RATIO = "aspect_ratio"
+    FEW_COLOURS = "few_colours"
+    MOSTLY_BLANK = "mostly_blank"
+    FLAT_BACKGROUND = "flat_background"
+    LINE_ART = "line_art"
 
 
 def keep_reason(image: ImageRef) -> DropReason | None:
@@ -28,7 +33,17 @@ def keep_reason(image: ImageRef) -> DropReason | None:
     longest, shortest = max(image.width, image.height), min(image.width, image.height)
     if shortest == 0 or longest / shortest > MAX_ASPECT_RATIO:
         return DropReason.ASPECT_RATIO
-    return None
+    appearance = rejection_rule(_metrics(image))
+    return DropReason(appearance.value) if appearance else None
+
+
+def _metrics(image: ImageRef) -> ImageMetrics:
+    return ImageMetrics(
+        n_colours=image.n_colours,
+        dominant_colour_share=image.dominant_colour_share,
+        near_white_share=image.near_white_share,
+        edge_density=image.edge_density,
+    )
 
 
 def deduplicate(

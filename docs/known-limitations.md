@@ -56,3 +56,19 @@ images extracted in the committed build is of interest**.
   The floor is set at 90 % rather than 100 % for exactly this reason.
 - **The local venv lives outside the repository** in development because the working
   copy sits on a slow external volume. CI uses the default `.venv`.
+
+## The appearance filter is not a topical filter
+
+`agrifm_g.domain.appearance` drops images that are plainly not photographs: too few colours,
+almost entirely white, one flat colour over half the frame, or a limited palette with almost no
+edges. Measured on the 567 labelled images it removes **66.7 % at 100 % precision**, keeping all
+10 labelled positives.
+
+What it cannot do:
+
+- **Anti-aliased vector figures survive it.** A rendered diagram with soft edges carries tens of
+  thousands of distinct colours and reads as photographic. One is in the published sample.
+- **It has no idea what agriculture looks like.** Of the five images in the current release,
+  one is agricultural. The rest are a portrait, a screenshot, a painting and a diagram.
+- **Its thresholds rest on ten positives.** They are set 3–10× away from the weakest keep for
+  that reason. Re-fit them when the label set grows, with `scripts/fit_appearance.py`.

@@ -29,6 +29,9 @@ def a_record(n_images: int = 2) -> DocumentRecord:
                 format="png",
                 sha256=str(i) * 64,
                 n_colours=8,
+                dominant_colour_share=0.02,
+                near_white_share=0.02,
+                edge_density=0.25,
             )
             for i in range(n_images)
         ),
@@ -57,7 +60,16 @@ def test_an_empty_doc_id_is_rejected():
 
 def test_duplicate_image_paths_are_rejected():
     duplicate = ImageRef(
-        path="images/a.png", page=0, width=10, height=10, format="png", sha256="a" * 64, n_colours=4
+        path="images/a.png",
+        page=0,
+        width=10,
+        height=10,
+        format="png",
+        sha256="a" * 64,
+        n_colours=30000,
+        dominant_colour_share=0.02,
+        near_white_share=0.02,
+        edge_density=0.25,
     )
     with pytest.raises(ValueError):
         DocumentRecord(
@@ -91,6 +103,9 @@ def test_round_trip_is_identity_and_n_images_matches(doc_id, text, n_images):
                 format="png",
                 sha256=str(i) * 64,
                 n_colours=3,
+                dominant_colour_share=0.02,
+                near_white_share=0.02,
+                edge_density=0.25,
             )
             for i in range(n_images)
         ),
@@ -105,8 +120,9 @@ def test_a_malformed_payload_is_rejected():
 
 
 GOLDEN = (
-    '{"doc_id": "doc-1", "extraction_version": 2, '
-    '"images": [{"format": "png", "height": 120, "n_colours": 8, "page": 0, '
+    '{"doc_id": "doc-1", "extraction_version": 3, '
+    '"images": [{"dominant_colour_share": 0.02, "edge_density": 0.25, "format": "png", '
+    '"height": 120, "n_colours": 8, "near_white_share": 0.02, "page": 0, '
     '"path": "images/doc-1/000.png", "sha256": "' + "0" * 64 + '", "width": 100}], '
     '"n_images": 1, "pdf_path": "pdfs/doc-1.pdf", '
     '"pdf_sha256": "' + "b" * 64 + '", '

@@ -22,6 +22,9 @@ def test_a_complete_dataset_has_no_problems():
         format="png",
         sha256="a" * 64,
         n_colours=4,
+        dominant_colour_share=0.02,
+        near_white_share=0.02,
+        edge_density=0.25,
     )
     assert verify_records([record(images=(image,))], {"pdfs/d1.pdf", "images/d1/000.png"}) == []
 
@@ -39,6 +42,9 @@ def test_a_missing_image_is_reported():
         format="png",
         sha256="a" * 64,
         n_colours=4,
+        dominant_colour_share=0.02,
+        near_white_share=0.02,
+        edge_density=0.25,
     )
     problems = verify_records([record(images=(image,))], {"pdfs/d1.pdf"})
     assert problems == ["d1: missing image file images/d1/000.png"]

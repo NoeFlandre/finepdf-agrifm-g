@@ -21,7 +21,10 @@ def payload(doc_id="<urn:uuid:AB>", n_images=1):
                 format="png",
                 data=b"\x89PNG" + bytes([i]),
                 sha256=str(i) * 64,
-                n_colours=6,
+                n_colours=30000,
+                dominant_colour_share=0.02,
+                near_white_share=0.02,
+                edge_density=0.25,
             )
             for i in range(n_images)
         ),

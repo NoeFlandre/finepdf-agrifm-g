@@ -5,7 +5,13 @@ from agrifm_g.domain.dedup import DropReason, deduplicate, keep_reason
 from agrifm_g.domain.records import DocumentRecord, ImageRef
 
 
-def image(path="images/d/000.png", sha="a" * 64, width=100, height=100, colours=2):
+def image(path="images/d/000.png", sha="a" * 64, width=100, height=100, colours=30000, **extra):
+    """A photographic image by default, so appearance rules do not fire unless asked."""
+    fields = {
+        "dominant_colour_share": 0.02,
+        "near_white_share": 0.02,
+        "edge_density": 0.25,
+    } | extra
     return ImageRef(
         path=path,
         page=0,
@@ -14,6 +20,7 @@ def image(path="images/d/000.png", sha="a" * 64, width=100, height=100, colours=
         format="png",
         sha256=sha,
         n_colours=colours,
+        **fields,
     )
 
 
@@ -72,9 +79,17 @@ def test_the_aspect_ratio_boundary_is_exact():
     assert keep_reason(image(width=100, height=2001)) is DropReason.ASPECT_RATIO
 
 
-def test_two_colours_is_enough_to_be_kept():
-    assert keep_reason(image(colours=2)) is None
+def test_two_colours_is_enough_to_survive_the_single_colour_rule():
+    assert keep_reason(image(colours=2)) is DropReason.FEW_COLOURS
     assert keep_reason(image(colours=0)) is DropReason.SINGLE_COLOUR
+
+
+def test_a_flat_graphic_is_dropped_on_appearance():
+    assert keep_reason(image(colours=500)) is DropReason.FEW_COLOURS
+
+
+def test_a_blank_scan_is_dropped_on_appearance():
+    assert keep_reason(image(near_white_share=0.99)) is DropReason.MOSTLY_BLANK
 
 
 def test_a_zero_height_image_is_dropped_rather_than_dividing_by_zero():

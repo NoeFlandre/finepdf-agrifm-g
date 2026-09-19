@@ -41,8 +41,15 @@ out/dataset/
 
 ## What is dropped
 
-Before an image is published it must survive, in order: 32 px minimum on each side,
-more than one colour, an aspect ratio no wider than 20:1, and not being a byte-identical
-duplicate of an image already kept. Every drop is counted by reason in `stats.json`.
+Before an image is published it must survive, in order:
 
-**No agricultural filtering happens at any stage yet.**
+1. **degenerate** — 32 px minimum on each side, more than one colour, aspect ratio no wider
+   than 20:1, not a byte-identical duplicate of something already kept;
+2. **appearance** — at least 4096 distinct colours, under 80 % near-white, no single colour
+   over 55 % of the frame, and not a limited palette with almost no edges.
+
+Every drop is counted by reason in `stats.json`. The appearance rules remove 66.7 % of images
+at 100 % precision on the [labelled set](labelling.md), losing none of its 10 positives.
+
+**No *topical* filtering happens yet**: nothing in the pipeline knows what agriculture looks
+like. See [known limitations](known-limitations.md).

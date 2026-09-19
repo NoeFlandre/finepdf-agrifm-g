@@ -4,7 +4,7 @@ What counts as an image of interest for AGRIFM-G, and what does not. This docume
 specification that the hand labels, the filter thresholds and the model prompts all follow.
 If a rule here is wrong, change it here first — not in the code.
 
-*Version 1 — 2026-09-18. Changing a rule bumps the version and invalidates labels that
+*Version 2 — 2026-09-19. Changing a rule bumps the version and invalidates labels that
 depended on it.*
 
 ## The question a labeller asks
@@ -82,12 +82,22 @@ call, recorded so it is applied consistently and can be revisited as a unit.
 | **livestock** | **keep** when in an evidently agricultural setting (pasture, barn, paddock) | Family 2 covers farms and practices. Not phenotyping data, but operational agriculture. It is tagged `livestock` so it can be excluded from a plant-only mix. |
 | **drawings and botanical illustrations of plants** | **reject** | Rendered, not photographed. Falls under diagrams. |
 
-## Open rulings after the first labelling pass
+## Rulings added in version 2
 
-The first 567 labelled images raised five classes this policy did not anticipate. They are
-recorded as `borderline` in the label set and listed in [the labelled set](labelling.md);
-until they are ruled on, the labels that depend on them are provisional: **silviculture**,
-**fungi**, **wild (uncultivated) vegetation**, **people-in-a-field**, and **woody biomass**.
+The first labelling pass turned up five classes version 1 did not anticipate. The rule is
+**cultivated, not merely botanical**: an image earns its place through agriculture, not through
+containing a plant.
+
+| class | ruling | why |
+| --- | --- | --- |
+| **wild / uncultivated vegetation** | **reject** | A bog, a marsh or a woodland is ecology, not agriculture. This empties family 3 of FinePDF material, which is itself the finding: niche *agricultural* taxa have to come from somewhere else. |
+| **silviculture** | **reject** | Forest stands, clearcuts and tree planting are forestry. Tagged in the notes, so a later decision can recover them. |
+| **fungi** | **reject** | Wild mushrooms are foraging. *Cultivated* mushroom production would be family 2, but nothing in the sample showed it. |
+| **woody biomass** | **reject** | A firewood pile is fuel. |
+| **people-in-a-field** | **reject** | Precedence rule 3 already covers it: subject beats setting. |
+
+Twenty-two labels moved from keep or borderline to reject under these rulings, and the label
+set carries `policy_version: 2`.
 
 ## Precedence
 

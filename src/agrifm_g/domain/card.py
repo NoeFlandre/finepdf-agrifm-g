@@ -12,6 +12,12 @@ SCHEMA_ROWS = (
     ("width", "int32", "pixels"),
     ("height", "int32", "pixels"),
     ("image_sha256", "string", "content hash; unique across the dataset"),
+    (
+        "n_colours",
+        "int32",
+        "distinct colours in a 256 px thumbnail — the appearance filter's main signal",
+    ),
+    ("edge_density", "float32", "share of edge pixels in a 256 px thumbnail"),
     ("image_path", "string", "path the image had in the build directory"),
     ("source_url", "string", "URL the PDF was crawled from — the provenance record"),
     ("pdf_sha256", "string", "hash of the retrieved PDF, so a refetch is verifiable"),
@@ -56,6 +62,23 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             "## Schema",
             "",
             _schema_table(),
+            "",
+            "## Filtering",
+            "",
+            "Images are dropped in two cheap stages, both before any model: **degenerate** (under"
+            " 32 px a side, single-colour, aspect ratio beyond 20:1, exact duplicate by SHA-256)"
+            " and **appearance** — too few distinct colours, almost entirely white, one flat"
+            " colour over half the frame, or a limited palette with almost no edges.",
+            "",
+            "Measured against 567 hand-labelled images: the appearance rules drop **66.7 %** of"
+            " images at **100 % precision**, losing none of the 10 labelled keeps. Thresholds sit"
+            " 3-10x away from the weakest keep, because ten positives is not enough to fit a"
+            " boundary. They do **not** catch anti-aliased vector figures, which carry enough"
+            " colours to look photographic.",
+            "",
+            "**This is not topical filtering.** Nothing here knows what agriculture looks like;"
+            " it only removes what is plainly not a photograph. What survives is still mostly"
+            " unrelated to agriculture.",
             "",
             "## How it was built",
             "",

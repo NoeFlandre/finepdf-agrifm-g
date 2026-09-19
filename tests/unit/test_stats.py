@@ -12,6 +12,9 @@ def image(width=100, height=200, sha="a" * 64, path="images/d/000.png"):
         format="png",
         sha256=sha,
         n_colours=5,
+        dominant_colour_share=0.02,
+        near_white_share=0.02,
+        edge_density=0.25,
     )
 
 
@@ -85,6 +88,9 @@ def test_megapixels_and_totals_are_exact():
             format="png",
             sha256="c" * 64,
             n_colours=5,
+            dominant_colour_share=0.02,
+            near_white_share=0.02,
+            edge_density=0.25,
         ),
     )
     stats = build_stats([record(images=images)], sampled=1, dropped={}, seed=1)

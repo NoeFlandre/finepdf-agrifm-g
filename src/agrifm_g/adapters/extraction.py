@@ -11,6 +11,7 @@ from pypdf import PageObject, PdfReader
 from pypdf._page import ImageFile
 from pypdf.errors import DependencyError, PyPdfError
 
+from agrifm_g.adapters.appearance import measure
 from agrifm_g.domain.normalisation import is_usable_image
 
 
@@ -34,6 +35,9 @@ class ExtractedImage:
     data: bytes
     sha256: str
     n_colours: int
+    dominant_colour_share: float
+    near_white_share: float
+    edge_density: float
 
 
 def extract_images(pdf_bytes: bytes) -> tuple[ExtractedImage, ...]:
@@ -58,8 +62,9 @@ def _page_images(page_number: int, page: PageObject) -> list[ExtractedImage]:
         encoded = _as_png(item)
         if encoded is None:
             continue
-        width, height, colours, data = encoded
+        width, height, _, data = encoded
         if is_usable_image(width=width, height=height, n_bytes=len(data)):
+            metrics = measure(data)
             extracted.append(
                 ExtractedImage(
                     page=page_number,
@@ -68,7 +73,10 @@ def _page_images(page_number: int, page: PageObject) -> list[ExtractedImage]:
                     format="png",
                     data=data,
                     sha256=hashlib.sha256(data).hexdigest(),
-                    n_colours=colours,
+                    n_colours=metrics.n_colours,
+                    dominant_colour_share=metrics.dominant_colour_share,
+                    near_white_share=metrics.near_white_share,
+                    edge_density=metrics.edge_density,
                 )
             )
     return extracted

@@ -33,7 +33,10 @@ def an_image(page: int, seed: int) -> ExtractedImage:
         format="png",
         data=data,
         sha256=hashlib.sha256(data).hexdigest(),
-        n_colours=200,
+        n_colours=30000,
+        dominant_colour_share=0.02,
+        near_white_share=0.02,
+        edge_density=0.25,
     )
 
 

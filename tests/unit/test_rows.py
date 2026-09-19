@@ -17,7 +17,10 @@ def record(n_images=2, doc_id="d1"):
                 height=20 + i,
                 format="png",
                 sha256=str(i) * 64,
-                n_colours=5,
+                n_colours=30000,
+                dominant_colour_share=0.02,
+                near_white_share=0.02,
+                edge_density=0.25,
             )
             for i in range(n_images)
         ),
@@ -55,9 +58,11 @@ def test_a_row_carries_every_declared_column_with_the_right_value():
         "height": 21,
         "image_sha256": "1" * 64,
         "image_path": "images/d1/001.png",
+        "n_colours": 30000,
+        "edge_density": 0.25,
         "source_url": "https://example.org/a.pdf",
         "pdf_sha256": "b" * 64,
         "text": "hello",
         "n_images_in_doc": 2,
-        "extraction_version": 2,
+        "extraction_version": 3,
     }

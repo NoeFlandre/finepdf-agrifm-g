@@ -112,4 +112,5 @@ pytest_add_cli_args_test_selection = [
     "tests/unit/test_stats.py",
     "tests/unit/test_rows.py",
     "tests/unit/test_card.py",
+    "tests/unit/test_appearance.py",
 ]

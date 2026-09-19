@@ -25,7 +25,10 @@ materialises them, `scripts/contact_sheet.py` renders them for judging, and
 | stratum | images | keeps | rate |
 | --- | --- | --- | --- |
 | uniform | 337 | 1 | **0.30 %** |
-| candidate | 230 | 11 | **4.8 %** |
+| candidate | 230 | 9 | **3.9 %** |
+
+*(Under policy v1 the candidate rate was 4.8 %. The v2 rulings — wild vegetation, forestry and
+fungi all rejected — moved 22 labels to reject.)*
 
 **The base rate of interesting images in unfiltered FinePDF is 0.30 %** — one image in
 every 337. That figure comes from the uniform stratum alone and is the number every later
@@ -34,10 +37,10 @@ claim must be read against.
 **Keyword scoring the document text lifts that to 4.8 %: roughly a 16× enrichment.** That is
 the empirical case for the text gate, measured before the gate was built.
 
-The 12 keeps break down as: family 1 (phenotyping) 3 — two leaf-disease close-ups and a
+The 10 keeps break down as: family 1 (phenotyping) 3 — two leaf-disease close-ups and a
 forage-sampling bench; family 2 (operational) 7 — bales on stubble, a tractor mowing, farmers
-carrying harvested greens, a lamb, milking, a dairy barn, a grazed pasture; family 3 (niche) 2
-— wild bog and marsh plants.
+carrying harvested greens, a lamb, milking, a dairy barn, a grazed pasture; **family 3 (niche):
+zero**.
 
 What everything else is:
 
@@ -61,31 +64,32 @@ A second pass over 30 randomly drawn, already-labelled images agreed **30/30 on 
 measures consistency on the easy majority class only. Agreement on positives is unmeasured, and
 a second labeller — a human one — is the right way to fix that.
 
-## Open questions the images raised
+## The rulings that shaped this set
 
-The policy was written before these images were seen, and three classes came up often enough
-to need a ruling. They are labelled `borderline`, never guessed, and **the labels are not final
-until these are decided**:
+The policy was written before these images were seen. Five classes came up often enough to
+need a ruling, and [policy v2](relevance-policy.md) decided all of them the same way —
+**cultivated, not merely botanical**:
 
 | gap | count | the question |
 | --- | --- | --- |
-| **silviculture** | 10 | managed forest stands, clearcuts, tree planting. A crop on a 40-year rotation, or out of scope? |
-| **fungi** | 3 | wild mushrooms as the subject. Not plants, but an agricultural product when cultivated. |
-| **wild vegetation** | 3 | a sundew bog, a marsh in flower, a woodland stream. Plants are plainly the subject, and family 3 wants species breadth — but none of it is cultivated. |
-| **people-in-a-field** | 2 | gardening and fieldwork photos where the person dominates the frame. Precedence rule 3 says portrait; the activity says practice. |
-| **woody biomass** | 1 | a firewood pile: plant material, but fuel. |
+| **silviculture** | 10 | rejected — forestry, not agriculture |
+| **fungi** | 3 | rejected — foraging; cultivated production would count |
+| **wild vegetation** | 3 | rejected — ecology, not cultivation |
+| **people-in-a-field** | 2 | rejected — subject beats setting |
+| **woody biomass** | 1 | rejected — fuel |
 
-Two of the wild-vegetation images were provisionally labelled `keep`/family 3. If that ruling
-is reversed, family 3 drops to zero and the labelled set contains **no niche material at all**.
+**Family 3 is therefore empty.** That is the most useful thing this pass found: FinePDF's
+agricultural material is operational (family 2) and occasionally phenotypic (family 1), but
+rare cultivated species do not appear in it at this scale. Niche coverage has to come from a
+different source.
 
 ## What this set cannot do yet
 
-- **It has 12 positives, not the 100 the issue asked for.** Reaching 100 at a 0.3 % base rate
+- **It has 10 positives, not the 100 the issue asked for.** Reaching 100 at a 0.3 % base rate
   means labelling tens of thousands of uniform images, or leaning entirely on the candidate
   stratum and accepting its bias. This is a finding about FinePDF, not a shortfall of effort:
   **the source is thin in what we want.**
 - **Recall estimates will be wide.** With 11 candidate-stratum positives, a filter that misses
   one moves measured recall by nine points.
-- **Family 3 is barely represented**, and only by wild plants under a disputed ruling. The yield
-  study should treat "does FinePDF contain niche agricultural imagery at all" as an open
-  question, not a measurement problem.
+- **Family 3 is empty.** The yield study should treat "does FinePDF contain niche agricultural
+  imagery at all" as an open question, not a measurement problem.

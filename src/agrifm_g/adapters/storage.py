@@ -79,6 +79,10 @@ def _write_image(out_dir: Path, doc_id: str, position: int, image: ExtractedImag
         format=image.format,
         sha256=image.sha256,
         n_colours=image.n_colours,
+        # rounded once, here, so what is stored and what is held in memory agree
+        dominant_colour_share=round(image.dominant_colour_share, 5),
+        near_white_share=round(image.near_white_share, 5),
+        edge_density=round(image.edge_density, 5),
     )
 
 
