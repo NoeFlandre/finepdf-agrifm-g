@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,7 @@ from agrifm_g.adapters.pdfsource import FetchError, PdfFetcher
 from agrifm_g.adapters.storage import DocumentPayload, write_dataset
 from agrifm_g.domain.records import DocumentRecord
 from agrifm_g.domain.sampling import select_indices
+from agrifm_g.domain.textgate import DEFAULT_THRESHOLD, agronomy_score, passes_gate
 
 
 @dataclass(frozen=True, slots=True)
@@ -87,16 +89,58 @@ def build_manifest(
     )
 
 
+@dataclass(frozen=True, slots=True)
+class BuildOutcome:
+    """What a build did, including the documents it never fetched."""
+
+    records: list[DocumentRecord]
+    sampled: int
+    gated_out: int
+
+
 def build_dataset(
-    manifest: Manifest, source: RowSource, fetcher: PdfFetcher, out_dir: Path
+    manifest: Manifest,
+    source: RowSource,
+    fetcher: PdfFetcher,
+    out_dir: Path,
+    *,
+    terms: Collection[str] = (),
+    threshold: float = DEFAULT_THRESHOLD,
 ) -> list[DocumentRecord]:
     """Materialise the manifest into a dataset directory, skipping unusable documents."""
-    payloads = [
-        payload
-        for row in source.rows(manifest.indices)
-        if (payload := _payload_for(row, fetcher)) is not None
-    ]
-    return write_dataset(out_dir, payloads)
+    return build_with_outcome(
+        manifest, source, fetcher, out_dir, terms=terms, threshold=threshold
+    ).records
+
+
+def build_with_outcome(
+    manifest: Manifest,
+    source: RowSource,
+    fetcher: PdfFetcher,
+    out_dir: Path,
+    *,
+    terms: Collection[str] = (),
+    threshold: float = DEFAULT_THRESHOLD,
+) -> BuildOutcome:
+    """As `build_dataset`, but also reports how many documents the text gate skipped.
+
+    With no `terms` the gate is inert: scoring against an empty lexicon would reject
+    everything, so an empty lexicon means "no gate" rather than "no documents".
+    """
+    rows = source.rows(manifest.indices)
+    wanted = [row for row in rows if _worth_fetching(row, terms, threshold)]
+    payloads = [payload for row in wanted if (payload := _payload_for(row, fetcher)) is not None]
+    return BuildOutcome(
+        records=write_dataset(out_dir, payloads),
+        sampled=len(rows),
+        gated_out=len(rows) - len(wanted),
+    )
+
+
+def _worth_fetching(row: FinePdfRow, terms: Collection[str], threshold: float) -> bool:
+    if not terms:
+        return True
+    return passes_gate(agronomy_score(row.text, terms), threshold=threshold)
 
 
 def _payload_for(row: FinePdfRow, fetcher: PdfFetcher) -> DocumentPayload | None:

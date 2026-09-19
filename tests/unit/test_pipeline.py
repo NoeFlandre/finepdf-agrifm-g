@@ -65,3 +65,52 @@ def test_build_skips_documents_whose_pdf_cannot_be_read(tmp_path):
     manifest = build_manifest(FakeRowSource(rows()), size=2, seed=5)
     records = build_dataset(manifest, FakeRowSource(rows()), FakeFetcher(b"not a pdf"), tmp_path)
     assert records == []
+
+
+TERMS = frozenset({"wheat", "canopy"})
+
+
+def agricultural_rows():
+    return [
+        FinePdfRow(doc_id="keep-me", url="https://example.org/0.pdf", text="wheat canopy trial"),
+        FinePdfRow(doc_id="skip-me", url="https://example.org/1.pdf", text="quarterly finance"),
+    ]
+
+
+def test_the_text_gate_skips_documents_before_they_are_fetched(tmp_path, fixtures):
+    from agrifm_g.pipeline import build_with_outcome
+
+    source = FakeRowSource(agricultural_rows())
+    fetcher = FakeFetcher((fixtures / "one_image.pdf").read_bytes())
+    manifest = build_manifest(source, size=2, seed=1)
+    outcome = build_with_outcome(manifest, source, fetcher, tmp_path, terms=TERMS, threshold=0.05)
+    assert [record.doc_id for record in outcome.records] == ["keep-me"]
+    assert outcome.gated_out == 1
+    assert fetcher.calls == ["https://example.org/0.pdf"]
+
+
+def test_an_empty_lexicon_means_no_gate_rather_than_no_documents(tmp_path, fixtures):
+    from agrifm_g.pipeline import build_with_outcome
+
+    source = FakeRowSource(agricultural_rows())
+    fetcher = FakeFetcher((fixtures / "one_image.pdf").read_bytes())
+    manifest = build_manifest(source, size=2, seed=1)
+    outcome = build_with_outcome(manifest, source, fetcher, tmp_path, terms=())
+    assert len(outcome.records) == 2
+    assert outcome.gated_out == 0
+
+
+def test_the_outcome_reports_what_was_sampled(tmp_path, fixtures):
+    from agrifm_g.pipeline import build_with_outcome
+
+    source = FakeRowSource(agricultural_rows())
+    manifest = build_manifest(source, size=2, seed=1)
+    outcome = build_with_outcome(
+        manifest,
+        source,
+        FakeFetcher((fixtures / "one_image.pdf").read_bytes()),
+        tmp_path,
+        terms=TERMS,
+        threshold=0.05,
+    )
+    assert outcome.sampled == 2

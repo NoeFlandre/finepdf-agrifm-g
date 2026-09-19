@@ -107,6 +107,49 @@ def test_build_writes_a_dataset_from_a_manifest(tmp_path, monkeypatch, fixtures)
     manifest = tmp_path / "m.json"
     manifest.write_text(build_manifest(FakeSource(), size=2, seed=1).to_json())
     out = tmp_path / "out"
+    argv = ["build", "--manifest", str(manifest), "--out", str(out), "--cache", str(tmp_path / "c")]
+    # the rows carry no agronomy vocabulary, so the gate is off for this check
+    assert main([*argv, "--min-text-score", "0"]) == 0
+    assert len(read_records_from(out)) == 2
+
+
+def test_build_applies_the_text_gate_by_default(tmp_path, monkeypatch, fixtures, capsys):
+    """The same rows, with the gate at its default: nothing agricultural, nothing fetched."""
+    from agrifm_g import cli
+    from agrifm_g.adapters.finepdf import FinePdfRow
+    from agrifm_g.pipeline import Manifest
+
+    class FakeSource:
+        def total(self):
+            return 4
+
+        def rows(self, indices):
+            return [
+                FinePdfRow(
+                    doc_id=f"d{i}", url=f"https://example.org/{i}.pdf", text="quarterly report"
+                )
+                for i in indices
+            ]
+
+    monkeypatch.setattr(cli, "ParquetRowSource", lambda **kwargs: FakeSource())
+    monkeypatch.setattr(
+        cli,
+        "CachingPdfFetcher",
+        lambda **kwargs: type("F", (), {"fetch": lambda self, url: pytest.fail("fetched")})(),
+    )
+    manifest = tmp_path / "m.json"
+    manifest.write_text(
+        Manifest(
+            dataset="d",
+            config="c",
+            split="train",
+            seed=3,
+            size=2,
+            indices=(0, 1),
+            doc_ids=("d0", "d1"),
+        ).to_json()
+    )
+    out = tmp_path / "out"
     assert (
         main(
             [
@@ -121,7 +164,7 @@ def test_build_writes_a_dataset_from_a_manifest(tmp_path, monkeypatch, fixtures)
         )
         == 0
     )
-    assert len(read_records_from(out)) == 2
+    assert "skipped 2/2" in capsys.readouterr().out
 
 
 def read_records_from(path):

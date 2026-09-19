@@ -74,7 +74,9 @@ ds[0]["image"]  # PIL.Image
 
 ## Filtering
 
-Images are dropped in two cheap stages, both before any model: **degenerate** (under 32 px a side, single-colour, aspect ratio beyond 20:1, exact duplicate by SHA-256) and **appearance** — too few distinct colours, almost entirely white, one flat colour over half the frame, or a limited palette with almost no edges.
+Before anything is downloaded, a **text gate** scores each document against an agronomy lexicon and skips the low scorers. On this run it skipped 494 of 600 sampled documents, so five sixths of the fetching never happened. It is tuned for recall: on the labelled set it keeps every positive.
+
+Images are then dropped in two cheap stages, both before any model: **degenerate** (under 32 px a side, single-colour, aspect ratio beyond 20:1, exact duplicate by SHA-256) and **appearance** — too few distinct colours, almost entirely white, one flat colour over half the frame, or a limited palette with almost no edges.
 
 Measured against 567 hand-labelled images: the appearance rules drop **66.7 %** of images at **100 % precision**, losing none of the 10 labelled keeps. Thresholds sit 3-10x away from the weakest keep, because ten positives is not enough to fit a boundary. They do **not** catch anti-aliased vector figures, which carry enough colours to look photographic.
 

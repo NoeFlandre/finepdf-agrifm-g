@@ -41,7 +41,10 @@ out/dataset/
 
 ## What is dropped
 
-Before an image is published it must survive, in order:
+Before an image exists at all, its **document** must pass the text gate: at least 0.3 % of its
+words present in `data/agronomy_lexicon.txt`. Documents below that are never fetched.
+
+Then, before an image is published it must survive, in order:
 
 1. **degenerate** — 32 px minimum on each side, more than one colour, aspect ratio no wider
    than 20:1, not a byte-identical duplicate of something already kept;

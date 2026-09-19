@@ -14,12 +14,15 @@ from agrifm_g.adapters.finepdf import (
     ParquetRowSource,
     RowSource,
 )
+from agrifm_g.adapters.lexicon import DEFAULT_PATH as LEXICON_PATH
+from agrifm_g.adapters.lexicon import load_lexicon
 from agrifm_g.adapters.packaging import package_dataset
 from agrifm_g.adapters.pdfsource import CachingPdfFetcher
 from agrifm_g.adapters.publish import publish_dataset
 from agrifm_g.adapters.storage import existing_files, file_hashes, read_records
+from agrifm_g.domain.textgate import DEFAULT_THRESHOLD
 from agrifm_g.domain.verification import verify_records
-from agrifm_g.pipeline import Manifest, build_dataset, build_manifest
+from agrifm_g.pipeline import Manifest, build_manifest, build_with_outcome
 
 DEFAULT_MANIFEST = Path("data/sample_manifest.json")
 
@@ -47,6 +50,13 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     build.add_argument("--out", type=Path, default=Path("out/dataset"))
     build.add_argument("--cache", type=Path, default=Path(".cache/pdfs"))
+    build.add_argument("--lexicon", type=Path, default=LEXICON_PATH)
+    build.add_argument(
+        "--min-text-score",
+        type=float,
+        default=DEFAULT_THRESHOLD,
+        help="skip documents scoring below this before fetching them; 0 disables the gate",
+    )
     build.set_defaults(run=_run_build)
 
     package = commands.add_parser(
@@ -95,9 +105,20 @@ def _run_build(args: argparse.Namespace) -> int:
         dataset=manifest.dataset, config=manifest.config, split=manifest.split
     )
     args.out.mkdir(parents=True, exist_ok=True)
-    records = build_dataset(manifest, source, CachingPdfFetcher(cache_dir=args.cache), args.out)
-    images = sum(record.n_images for record in records)
-    print(f"built {len(records)} documents and {images} images in {args.out}")
+    terms = load_lexicon(args.lexicon) if args.min_text_score > 0 else frozenset()
+    outcome = build_with_outcome(
+        manifest,
+        source,
+        CachingPdfFetcher(cache_dir=args.cache),
+        args.out,
+        terms=terms,
+        threshold=args.min_text_score,
+    )
+    images = sum(record.n_images for record in outcome.records)
+    print(
+        f"text gate skipped {outcome.gated_out}/{outcome.sampled} documents before fetching; "
+        f"built {len(outcome.records)} documents and {images} images in {args.out}"
+    )
     return 0
 
 

@@ -72,3 +72,16 @@ What it cannot do:
   one is agricultural. The rest are a portrait, a screenshot, a painting and a diagram.
 - **Its thresholds rest on ten positives.** They are set 3–10× away from the weakest keep for
   that reason. Re-fit them when the label set grows, with `scripts/fit_appearance.py`.
+
+
+## The text gate lets generic vocabulary through
+
+The lexicon contains words that are agricultural in most contexts and not in others — *field*,
+*plant*, *species*, *yield*, *trial*. An amateur-radio newsletter talking about a "field day"
+scores like an agronomy paper, and several are in the published sample.
+
+A tightened lexicon without those 23 ambiguous terms skips 64 % of documents at full recall,
+against 48 % for the current one — but its weakest positive sits only 1.3x above the threshold,
+where the current setting has 2.1x. With ten labelled positives, margin is worth more than
+saved fetches, so the generic terms stay. Revisit with `scripts/fit_text_gate.py` once the
+label set is larger.
