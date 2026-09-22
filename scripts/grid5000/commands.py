@@ -9,7 +9,12 @@ from scripts.grid5000.config import RunConfig
 
 def resource_spec(config: RunConfig) -> str:
     """Return a bounded CPU-only OAR resource request."""
-    return f"host=1/core={config.cores},mem={config.memory_gb}G,walltime={config.walltime}"
+    return f"host=1/core={config.cores},walltime={config.walltime}"
+
+
+def memory_property(config: RunConfig) -> str:
+    """Return Grid’5000's node-memory property filter in MB."""
+    return f"memnode >= {config.memory_gb * 1024}"
 
 
 def render_worker_command(source_dir: str, spec_path: str) -> str:
@@ -30,6 +35,8 @@ def render_submission_command(config: RunConfig, source_dir: str, run_root: str)
         f"agrifm-{config.run_id[-12:]}",
         "-l",
         resource_spec(config),
+        "-p",
+        memory_property(config),
         "-O",
         stdout,
         "-E",

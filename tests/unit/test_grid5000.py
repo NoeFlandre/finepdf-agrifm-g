@@ -3,7 +3,11 @@ import shlex
 from pathlib import Path
 
 import pytest
-from scripts.grid5000.commands import render_submission_command, render_worker_command
+from scripts.grid5000.commands import (
+    memory_property,
+    render_submission_command,
+    render_worker_command,
+)
 from scripts.grid5000.config import RunConfig
 from scripts.grid5000.remote import (
     SubmissionError,
@@ -40,7 +44,9 @@ def test_submission_command_requests_cpu_only_bounded_resources():
 
     command = render_submission_command(config, "/home/u/run/source", "/home/u/run")
 
-    assert "host=1/core=16,mem=32G,walltime=04:00:00" in command
+    assert "host=1/core=16,walltime=04:00:00" in command
+    assert memory_property(config) == "memnode >= 32768"
+    assert "memnode >= 32768" in command
     assert "gpu" not in command.lower()
     assert "usagepolicycheck" not in command
 

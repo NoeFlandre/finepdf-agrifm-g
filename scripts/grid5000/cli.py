@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from scripts.grid5000 import remote
-from scripts.grid5000.commands import render_submission_command, resource_spec
+from scripts.grid5000.commands import memory_property, render_submission_command, resource_spec
 from scripts.grid5000.config import (
     DEFAULT_CORES,
     DEFAULT_MEMORY_GB,
@@ -249,6 +249,7 @@ def _record_submission(
         "config": config.to_dict(),
         "remote_root": run_root,
         "resource": resource_spec(config),
+        "property": memory_property(config),
         "submission_stdout": result.stdout,
         "submission_stderr": result.stderr,
         "attempts": attempts,
@@ -266,6 +267,7 @@ def _run_submit(args: argparse.Namespace) -> int:
         print(f"dry run: site={site}")
         print(f"dry run: run_id={config.run_id}")
         print(f"dry run: resources={resource_spec(config)}")
+        print(f"dry run: property={memory_property(config)}")
         print("dry run: no SSH connection or OAR submission")
         return 0
 

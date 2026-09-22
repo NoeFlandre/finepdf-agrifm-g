@@ -39,7 +39,8 @@ def test_submit_dry_run_does_not_call_remote(monkeypatch, tmp_path: Path, capsys
     assert code == 0
     output = capsys.readouterr().out
     assert "grenoble" in output
-    assert "host=1/core=16,mem=32G,walltime=04:00:00" in output
+    assert "host=1/core=16,walltime=04:00:00" in output
+    assert "memnode >= 32768" in output
     assert not (tmp_path / "state").exists()
 
 
