@@ -1,6 +1,12 @@
 from pathlib import Path
 
-from scripts.build_scaled_sample import group_refs, merge_builds
+import pytest
+from scripts.build_scaled_sample import (
+    _prepare_group_dir,
+    group_refs,
+    merge_builds,
+    require_grid5000_execution,
+)
 
 from agrifm_g.adapters.extraction import extract_images
 from agrifm_g.adapters.storage import DocumentPayload, read_records, write_dataset
@@ -38,3 +44,30 @@ def test_group_refs_spread_the_sample_across_shards():
     assert [ref.slug for ref in refs] == ["s00000g0", "s00000g1", "s00007g0", "s00007g1"]
     assert refs[-1].shard_name == "000_00007.parquet"
     assert refs[-1].source().row_group == 1
+
+
+def test_scaled_build_requires_an_oar_job(monkeypatch):
+    monkeypatch.delenv("AGRIFM_G_GRID5000_JOB", raising=False)
+    monkeypatch.delenv("OAR_JOB_ID", raising=False)
+    monkeypatch.delenv("OAR_NODEFILE", raising=False)
+
+    with pytest.raises(SystemExit, match="Grid5000"):
+        require_grid5000_execution()
+
+
+def test_resume_discards_only_an_incomplete_group_part(tmp_path):
+    staging = tmp_path / "groups"
+    group_dir = staging / "s00000g0"
+    partial = staging / ".s00000g0.part"
+    partial.mkdir(parents=True)
+    (partial / "partial").write_text("incomplete")
+    completed = staging / "s00000g1"
+    completed.mkdir()
+    (completed / "metadata.jsonl").write_text("complete\n")
+
+    prepared = _prepare_group_dir(group_dir, resume=True)
+
+    assert prepared == partial
+    assert partial.is_dir()
+    assert not (partial / "partial").exists()
+    assert (completed / "metadata.jsonl").read_text() == "complete\n"

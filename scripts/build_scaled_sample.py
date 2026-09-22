@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -183,6 +184,34 @@ def _validate_output_root(out_root: Path, *, resume: bool) -> None:
         raise SystemExit(f"cannot resume without staged groups: {out_root / 'groups'}")
 
 
+def require_grid5000_execution(env: Mapping[str, str] | None = None) -> None:
+    """Refuse the scaled build unless it is inside an OAR allocation."""
+    values = os.environ if env is None else env
+    required = ("AGRIFM_G_GRID5000_JOB", "OAR_JOB_ID", "OAR_NODEFILE")
+    if values.get(required[0]) != "1" or any(not values.get(name) for name in required[1:]):
+        raise SystemExit("the scaled FinePDF build must run inside a Grid5000 OAR job")
+
+
+def _prepare_group_dir(group_dir: Path, *, resume: bool) -> Path:
+    """Return a clean private staging directory for one group.
+
+    A completed group is immutable.  An incomplete ``.part`` directory can be
+    discarded on resume, and the final rename makes completion atomic.
+    """
+    partial_dir = group_dir.with_name(f".{group_dir.name}.part")
+    if partial_dir.exists():
+        if not resume:
+            raise SystemExit(f"refusing to reuse incomplete staged group: {partial_dir}")
+        shutil.rmtree(partial_dir)
+    if group_dir.exists() and any(group_dir.iterdir()):
+        if not resume or (group_dir / "metadata.jsonl").exists():
+            raise SystemExit(f"refusing to reuse staged group: {group_dir}")
+        shutil.rmtree(group_dir)
+    partial_dir.parent.mkdir(parents=True, exist_ok=True)
+    partial_dir.mkdir()
+    return partial_dir
+
+
 def _run_group(
     *,
     group: GroupRef,
@@ -200,25 +229,24 @@ def _run_group(
             _reuse_group(group=group, out_dir=group_dir, terms=terms, threshold=threshold),
             "reused",
         )
-    if group_dir.exists() and any(group_dir.iterdir()):
-        raise SystemExit(f"refusing to reuse incomplete staged group: {group_dir}")
-    return (
-        _build_group(
-            group=group,
-            out_dir=group_dir,
-            cache_dir=cache_dir,
-            terms=terms,
-            caption_terms=caption_terms,
-            threshold=threshold,
-            seed=seed,
-            workers=workers,
-        ),
-        "built",
+    partial_dir = _prepare_group_dir(group_dir, resume=resume)
+    result = _build_group(
+        group=group,
+        out_dir=partial_dir,
+        cache_dir=cache_dir,
+        terms=terms,
+        caption_terms=caption_terms,
+        threshold=threshold,
+        seed=seed,
+        workers=workers,
     )
+    partial_dir.replace(group_dir)
+    return result, "built"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = _parse_args(argv)
+    require_grid5000_execution()
     _validate_output_root(args.out_root, resume=args.resume)
 
     staging = args.out_root / "groups"
