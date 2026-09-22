@@ -23,7 +23,7 @@
 - Test: \`tests/unit/test_textgate.py\`
 - Test: \`tests/unit/test_lexicon.py\`
 
-- [ ] **Step 1: Add the red tests for phrase-aware scoring and split assignment.**
+- [x] **Step 1: Add the red tests for phrase-aware scoring and split assignment.**
 
 ~~~python
 def test_phrase_terms_match_as_whole_phrases():
@@ -49,7 +49,7 @@ Also assert that each committed lexicon has at least 100 terms, includes the req
 permaculture, hydroponics, agroforestry, and agroecology vocabulary, contains only lowercase terms,
 and contains both single-word and multi-word entries.
 
-- [ ] **Step 2: Run the focused tests and verify the expected missing-symbol failures.**
+- [x] **Step 2: Run the focused tests and verify the expected missing-symbol failures.**
 
 Run:
 
@@ -59,7 +59,7 @@ uv run pytest tests/unit/test_agriculture.py tests/unit/test_textgate.py tests/u
 
 Expected: collection or assertion failures caused by the new API and files not existing yet.
 
-- [ ] **Step 3: Implement the phrase-aware matcher and classifier minimally.**
+- [x] **Step 3: Implement the phrase-aware matcher and classifier minimally.**
 
 \`textgate.py\` will tokenize with \`[a-z0-9]+\`, normalize lexicon entries into token tuples, and
 count exact one- or multi-token matches using n-gram membership. \`agronomy_score\` remains a
@@ -83,7 +83,7 @@ def classify_document(
 generic agriculture file and both category files so every category term can pass the pre-fetch
 gate.
 
-- [ ] **Step 4: Populate the three extended English lexicons.**
+- [x] **Step 4: Populate the three extended English lexicons.**
 
 The conventional file will cover tractors, combines, planters, ploughs, harrows, cultivators,
 sprayers, fertilizer and pesticide use, silos, grain handling, barns, feedlots, livestock,
@@ -100,7 +100,7 @@ The broad file will contain general agriculture, crops, fields, farms, soil, liv
 production, harvest, rural infrastructure, and food-system terms. All entries are English and
 lowercase; comments begin with \`#\`.
 
-- [ ] **Step 5: Run the focused tests and commit the domain contract.**
+- [x] **Step 5: Run the focused tests and commit the domain contract.**
 
 Run:
 
@@ -129,14 +129,14 @@ git commit -m "feat: add agriculture split lexicons and classifier"
 - Test: \`tests/unit/test_dedup.py\`
 - Test: \`tests/unit/test_records.py\`
 
-- [ ] **Step 1: Add red regression tests proving captionless images survive.**
+- [x] **Step 1: Add red regression tests proving captionless images survive.**
 
 Add a fake page with one embedded image and text containing no explicit caption. Assert that
 \`extract_images(pdf_bytes)\` returns the image with \`caption == ""\`. Assert that a page with a
 caption returns the image and metadata but that no \`caption_terms\` argument exists or can filter
 it out.
 
-- [ ] **Step 2: Run extraction tests and observe the old API/behavior fail.**
+- [x] **Step 2: Run extraction tests and observe the old API/behavior fail.**
 
 Run:
 
@@ -146,13 +146,13 @@ uv run pytest tests/unit/test_extraction.py -q
 
 Expected: the new captionless behavior exposes the existing \`zip\`/caption-filter contract.
 
-- [ ] **Step 3: Remove caption filtering while retaining optional caption metadata.**
+- [x] **Step 3: Remove caption filtering while retaining optional caption metadata.**
 
 Change \`extract_images(pdf_bytes)\` and \`_page_images\` to accept no caption lexicon. Keep reading
 order caption pairing, but always return every usable candidate with either its matched caption or
 an empty string. The pipeline must never import \`contains_lexicon_word\` for extraction.
 
-- [ ] **Step 4: Replace strict appearance rules with obvious-degenerate rules.**
+- [x] **Step 4: Replace strict appearance rules with obvious-degenerate rules.**
 
 Keep dimension and aspect-ratio checks, exact hash deduplication, and only these appearance rules:
 
@@ -169,7 +169,7 @@ Remove edge-density, greyscale texture, line-art, and the old 8,000-colour thres
 metrics in records for diagnostics. Update \`DropReason\` and tests so valid low-texture, greyscale,
 diagram-like, and low-colour-but-not-flat images survive.
 
-- [ ] **Step 5: Run all extraction/appearance/record tests, then commit.**
+- [x] **Step 5: Run all extraction/appearance/record tests, then commit.**
 
 Run:
 
@@ -199,7 +199,7 @@ git commit -m "feat: retain captionless images and simplify visual filtering"
 - Test: \`tests/unit/test_stats.py\`
 - Test: \`tests/unit/test_card.py\`
 
-- [ ] **Step 1: Add failing tests for category propagation and split files.**
+- [x] **Step 1: Add failing tests for category propagation and split files.**
 
 Test that \`build_with_outcome\`:
 
@@ -219,7 +219,7 @@ Test that packaging writes \`data/conventional-*.parquet\` and
 \`train-*.parquet\`. Load both files with \`datasets.load_dataset\` and assert each row has the
 matching split value.
 
-- [ ] **Step 2: Run the new tests and observe expected failures.**
+- [x] **Step 2: Run the new tests and observe expected failures.**
 
 Run:
 
@@ -227,7 +227,7 @@ Run:
 uv run pytest tests/unit/test_pipeline.py tests/unit/test_rows.py tests/unit/test_packaging.py tests/unit/test_stats.py tests/unit/test_card.py -q
 ~~~
 
-- [ ] **Step 3: Extend records and pipeline with category assignment.**
+- [x] **Step 3: Extend records and pipeline with category assignment.**
 
 Add \`agriculture_split: str = ""\` to \`DocumentRecord\` and \`DocumentPayload\`, serialize it, and
 include it in flattened rows. Change pipeline payload selection to:
@@ -242,7 +242,7 @@ Keep the legacy no-category API behavior for small non-scaled tests by treating 
 lexicons as an unrestricted build with an empty split, while the scaled build always supplies the
 new lexicons.
 
-- [ ] **Step 4: Implement split-aware packaging and statistics.**
+- [x] **Step 4: Implement split-aware packaging and statistics.**
 
 Group flattened rows by the two \`AgricultureSplit\` values, write deterministic filenames
 \`{split}-{index:05d}-of-{n_shards:05d}.parquet\`, remove stale \`*.parquet\` files before writing,
@@ -251,7 +251,7 @@ and fail if a scaled record has an unknown/empty split. Add \`agriculture_split\
 Add \`documents.text_gated\`, \`documents.ambiguous\`, and a \`splits\` object containing per-split
 document and image counts. Keep totals and drop reasons deterministic.
 
-- [ ] **Step 5: Rewrite the generated card for the two English splits.**
+- [x] **Step 5: Rewrite the generated card for the two English splits.**
 
 The front matter must declare:
 
@@ -269,7 +269,7 @@ The prose must explain document-level text classification, optional captions, br
 retention, simple visual sanity filters, provenance, Grid'5000 reproduction, and both split
 counts. Remove all phenotype wording, old precision claims, and \`train\` loading examples.
 
-- [ ] **Step 6: Run focused packaging tests and commit.**
+- [x] **Step 6: Run focused packaging tests and commit.**
 
 Run:
 
@@ -297,14 +297,14 @@ git commit -m "feat: package conventional and sustainable splits"
 - Modify: \`tests/unit/test_grid5000.py\`
 - Modify: \`tests/unit/test_grid5000_cli.py\`
 
-- [ ] **Step 1: Add red tests for the agriculture output path and no phenotype inputs.**
+- [x] **Step 1: Add red tests for the agriculture output path and no phenotype inputs.**
 
 Assert that worker arguments use \`out/agriculture-30000\`, that the publish path matches it, that
 the scaled script loads all three agriculture lexicons, and that no rendered worker command uses
 the old phenotype path. Assert the existing \`env AGRIFM_G_GRID5000_JOB=1\` command shape remains
 valid.
 
-- [ ] **Step 2: Run Grid-focused tests and observe failures.**
+- [x] **Step 2: Run Grid-focused tests and observe failures.**
 
 Run:
 
@@ -312,21 +312,21 @@ Run:
 uv run pytest tests/unit/test_scaled_build.py tests/unit/test_grid5000_worker.py tests/unit/test_grid5000.py tests/unit/test_grid5000_cli.py -q
 ~~~
 
-- [ ] **Step 3: Update the scaled build.**
+- [x] **Step 3: Update the scaled build.**
 
 Use \`out/agriculture-30000\` by default, load the broad/category lexicons, remove every
 \`caption_terms\` argument, return text-gated and ambiguous counts from each staged group, and pass
 the category counts to \`package_dataset\`. Resume validation must recompute both text and category
 decisions from the same source rows and reject incomplete/unknown category records.
 
-- [ ] **Step 4: Update the worker, fetch path, and run identity.**
+- [x] **Step 4: Update the worker, fetch path, and run identity.**
 
 Point worker and remote fetch logic at \`out/agriculture-30000\`. Add a configuration/profile marker
 such as \`pipeline="agriculture-splits-v1"\` to \`RunConfig\` so a phenotype spec cannot collide with
 the agriculture output even when the commit is reused. Preserve bounded OAR resources, atomic
 staging, receipt generation, and the corrected \`env\` command.
 
-- [ ] **Step 5: Run Grid tests, shell checks, and commit.**
+- [x] **Step 5: Run Grid tests, shell checks, and commit.**
 
 Run:
 
@@ -357,7 +357,7 @@ git commit -m "feat: run agriculture split builds on Grid5000"
 - Delete: \`data/agronomy_lexicon.txt\`
 - Delete: \`data/phenotype_lexicon.txt\`
 
-- [ ] **Step 1: Replace active documentation with the agriculture split contract.**
+- [x] **Step 1: Replace active documentation with the agriculture split contract.**
 
 Document the two split definitions, document-level classification, optional captions, simple visual
 drops, source/provenance limitations, Grid'5000 commands, and HF loading examples:
@@ -368,7 +368,7 @@ dataset["conventional"][0]
 dataset["sustainable"][0]
 ~~~
 
-- [ ] **Step 2: Run a repository-wide active-code scan.**
+- [x] **Step 2: Run a repository-wide active-code scan.**
 
 Run:
 
@@ -380,7 +380,7 @@ Expected: no production pipeline, worker, card, test, or active documentation re
 only intentionally preserved historical label artifacts may be retained, and any such occurrence
 must be removed or clearly excluded from the release.
 
-- [ ] **Step 3: Run the full local quality gates.**
+- [x] **Step 3: Run the full local quality gates.**
 
 Run:
 
@@ -393,7 +393,7 @@ uv run ruff format --check .
 Expected: all tests and formatting pass. Type checking is attempted separately and reported if the
 existing environment cannot resolve optional dependencies.
 
-- [ ] **Step 4: Commit documentation and release contract.**
+- [x] **Step 4: Commit documentation and release contract.**
 
 ~~~bash
 git add README.md docs data tests/fixtures/golden_card.md
@@ -407,38 +407,38 @@ git commit -m "docs: describe agriculture split dataset"
 - Create local verified publish artifact under the run state directory.
 - Update \`NoeFlandre/finepdf-agrifm-g\` only after all artifact gates pass.
 
-- [ ] **Step 1: Verify the committed checkout and remote policy.**
+- [x] **Step 1: Verify the committed checkout and remote policy.**
 
 Run \`git status --short --branch\`, \`usagepolicycheck -t\` on every configured site through the
 preflight CLI, and the Grid runner dry-run. Do not submit if the checkout is dirty, policy output
 is not explicitly clean, or the resource command is not bounded.
 
-- [ ] **Step 2: Submit exactly one agriculture run.**
+- [x] **Step 2: Submit exactly one agriculture run.**
 
 Use all configured sites for preflight, then let the selector choose the first healthy site for one
 job. Use the smallest working CPU allocation and a realistic walltime; do not submit duplicate jobs.
 Record the run ID and OAR job ID in local state.
 
-- [ ] **Step 3: Monitor and inspect the terminal result.**
+- [x] **Step 3: Monitor and inspect the terminal result.**
 
 Poll status without starting another job. A scheduler terminal state is not success evidence; fetch
 the receipt only when the job is complete, inspect stdout/stderr, require \`status: complete\`, and
 require both split parquet families, \`README.md\`, and \`stats.json\` in the receipt.
 
-- [ ] **Step 4: Fetch and validate the artifact locally.**
+- [x] **Step 4: Fetch and validate the artifact locally.**
 
 Run the runner fetch command, verify receipt hashes, load both splits with \`datasets\`, assert the
 schema and \`agriculture_split\` values, decode a sample of images from each split, compare row/count
 statistics to \`stats.json\`, and assert no image hash occurs in both splits.
 
-- [ ] **Step 5: Replace and independently verify the HF dataset.**
+- [x] **Step 5: Replace and independently verify the HF dataset.**
 
 Upload the verified publish directory with a mirror-style commit so stale \`train\` files are removed.
 Then query the live Hub independently using \`hf datasets info\`, \`hf datasets parquet\`, and
 \`datasets.load_dataset("NoeFlandre/finepdf-agrifm-g")\`. Verify the new revision, exactly the two
 split names, row counts, schema, card YAML, and no phenotype text.
 
-- [ ] **Step 6: Perform exact cleanup and final policy check.**
+- [x] **Step 6: Perform exact cleanup and final policy check.**
 
 After live verification and confirmation that the OAR job is inactive, remove only the exact new
 remote run root through the guarded cleanup command. Inspect the two obsolete failed run roots by
@@ -458,5 +458,4 @@ record job IDs and artifact revision, and leave the local verified publication s
 - No step relies on a placeholder or an unbounded destructive action; remote cleanup is exact-ID
   gated and happens only after complete artifact verification.
 
-I will execute this plan inline with RED→GREEN checkpoints.
-
+Execution completed inline with RED→GREEN checkpoints.
