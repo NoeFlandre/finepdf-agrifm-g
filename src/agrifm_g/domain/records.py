@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-EXTRACTION_VERSION = 5
+EXTRACTION_VERSION = 6
 """Bumped whenever extraction changes in a way that alters stored bytes."""
 
 
@@ -38,6 +38,7 @@ class DocumentRecord:
     pdf_sha256: str
     text: str
     images: tuple[ImageRef, ...]
+    agriculture_split: str = ""
 
     def __post_init__(self) -> None:
         if not self.doc_id:
@@ -59,6 +60,7 @@ def record_to_json(record: DocumentRecord) -> str:
         "pdf_path": record.pdf_path,
         "pdf_sha256": record.pdf_sha256,
         "text": record.text,
+        "agriculture_split": record.agriculture_split,
         "images": [
             {
                 "path": image.path,
@@ -108,6 +110,7 @@ def record_from_json(payload: dict[str, Any]) -> DocumentRecord:
                 )
                 for image in payload["images"]
             ),
+            agriculture_split=payload.get("agriculture_split", ""),
         )
     except (KeyError, TypeError) as error:
         raise ValueError(f"malformed record: {error}") from error
