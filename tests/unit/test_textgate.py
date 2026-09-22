@@ -5,6 +5,7 @@ from agrifm_g.domain.textgate import (
     DEFAULT_THRESHOLD,
     agronomy_score,
     contains_lexicon_word,
+    lexicon_hits,
     passes_gate,
 )
 
@@ -29,6 +30,15 @@ def test_matching_ignores_case_and_punctuation():
 
 def test_matching_is_whole_word():
     assert agronomy_score("wheatgrass leafy", TERMS) == 0.0
+
+
+def test_phrase_matching_is_exact_and_case_insensitive():
+    assert lexicon_hits("Combine Harvester", {"combine harvester"}) == 1
+    assert lexicon_hits("harvester", {"combine harvester"}) == 0
+
+
+def test_phrase_hits_are_counted_in_the_document_score():
+    assert agronomy_score("combine harvester wheat", {"combine harvester", "wheat"}) == 2 / 3
 
 
 def test_caption_matching_is_whole_word():

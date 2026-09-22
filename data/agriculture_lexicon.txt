@@ -1,0 +1,222 @@
+# Broad agriculture vocabulary used for high-recall document prefetching
+agriculture
+agricultural
+agrarian
+agronomy
+agronomic
+agri
+agroecosystem
+agroecosystems
+farm
+farmer
+farmers
+farming
+farmland
+farmstead
+field
+fields
+cropland
+pasture
+pastures
+rangeland
+orchard
+orchards
+vineyard
+vineyards
+nursery
+greenhouse
+garden
+gardens
+crop
+crops
+cultivar
+cultivars
+variety
+varieties
+seed
+seeds
+seedling
+seedlings
+plant
+plants
+vegetation
+foliage
+leaf
+leaves
+root
+roots
+stem
+stems
+grain
+grains
+cereal
+cereals
+fruit
+fruits
+vegetable
+vegetables
+legume
+legumes
+oilseed
+oilseeds
+pulse
+pulses
+tuber
+tubers
+hay
+forage
+fodder
+livestock
+cattle
+cow
+cows
+dairy
+sheep
+goat
+goats
+pig
+pigs
+swine
+poultry
+chicken
+chickens
+turkey
+duck
+horse
+horses
+animal
+animals
+husbandry
+ranch
+ranching
+harvest
+harvesting
+planting
+sowing
+seeding
+cultivation
+tillage
+plowing
+ploughing
+weeding
+irrigation
+drainage
+water
+watershed
+soil
+soils
+earth
+compost
+manure
+fertilizer
+fertiliser
+pesticide
+herbicide
+insecticide
+fungicide
+pest
+pests
+disease
+diseases
+weed
+weeds
+pollination
+pollinator
+pollinators
+biodiversity
+ecology
+climate
+weather
+drought
+rainfall
+yield
+yields
+production
+productivity
+grower
+growers
+plantation
+rural
+village
+food
+machinery
+equipment
+tractor
+silo
+barn
+shed
+farmworker
+farmworkers
+worker
+workers
+labor
+labour
+land-use
+land management
+agricultural land
+agricultural production
+crop production
+food production
+farm operation
+farm operations
+field work
+agricultural research
+agricultural science
+plant science
+soil science
+animal science
+crop science
+farm management
+farm economics
+rural economy
+farming system
+production system
+crop rotation
+pest management
+water management
+farm product
+food security
+food system
+food systems
+supply chain
+food supply
+landscape
+landscapes
+natural resource
+natural resources
+resource management
+rural development
+agricultural policy
+agricultural economy
+farm income
+farm household
+farm households
+food crop
+cash crop
+commercial crop
+growing season
+growing seasons
+crop yield
+farm yield
+field trial
+field trials
+agricultural trial
+agricultural trials
+soil fertility
+soil moisture
+soil organic matter
+plant growth
+plant health
+animal health
+crop health
+farm landscape
+agricultural landscape
+land use
+land restoration
+rural community
+agricultural community
+food processing
+food market
+farm market
+farm labor
+farm labour

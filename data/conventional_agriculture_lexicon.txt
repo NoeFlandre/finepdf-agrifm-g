@@ -1,0 +1,233 @@
+# Conventional agriculture, farm operations, machinery, and infrastructure
+conventional agriculture
+conventional farming
+conventional farm
+commercial agriculture
+commercial farming
+commercial farm
+industrial agriculture
+industrial farming
+intensive agriculture
+intensive farming
+mechanized agriculture
+mechanised agriculture
+mechanized farming
+mechanised farming
+large-scale agriculture
+large scale agriculture
+large-scale farming
+large scale farming
+modern agriculture
+modern farming
+commodity agriculture
+commodity crop
+cash crop
+monoculture
+monocropping
+row crop
+row crops
+field crop
+field crops
+annual crop
+annual crops
+tractor
+tractors
+utility tractor
+utility tractors
+farm tractor
+farm tractors
+four-wheel tractor
+four wheel tractor
+crawler tractor
+track tractor
+compact tractor
+tractor cab
+tractor engine
+tractor attachment
+tractor attachments
+combine harvester
+combine harvesters
+combine
+combines
+harvester
+harvesters
+forage harvester
+forage harvesters
+cotton picker
+cotton pickers
+corn picker
+corn pickers
+sugarcane harvester
+sugarcane harvesters
+potato harvester
+potato harvesters
+grain harvester
+grain harvesters
+mechanical harvesting
+mechanical harvester
+reaper
+reapers
+swather
+swathers
+windrower
+windrowers
+baler
+balers
+round baler
+round balers
+hay baler
+hay balers
+mower conditioner
+mower conditioners
+disc mower
+disc mowers
+plough
+ploughs
+plow
+plows
+moldboard plow
+moldboard plough
+disc plow
+disc harrow
+disc harrows
+harrow
+harrows
+rotary harrow
+rotary harrows
+cultivator
+cultivators
+field cultivator
+field cultivators
+rototiller
+rototillers
+seed drill
+seed drills
+grain drill
+grain drills
+planter
+planters
+row planter
+row planters
+precision planter
+precision planters
+transplanter
+transplanters
+fertilizer spreader
+fertiliser spreader
+manure spreader
+manure spreaders
+lime spreader
+lime spreaders
+broadcast spreader
+broadcast spreaders
+agricultural sprayer
+agricultural sprayers
+crop sprayer
+crop sprayers
+boom sprayer
+boom sprayers
+airblast sprayer
+airblast sprayers
+pesticide application
+herbicide application
+fungicide application
+insecticide application
+chemical fertilizer
+chemical fertiliser
+synthetic fertilizer
+synthetic fertiliser
+nitrogen fertilizer
+nitrogen fertiliser
+phosphate fertilizer
+phosphate fertiliser
+potash fertilizer
+anhydrous ammonia
+ammonia fertilizer
+pre-emergence herbicide
+post-emergence herbicide
+weed killer
+chemical weed control
+chemical pest control
+irrigation system
+irrigation systems
+center pivot
+center-pivot irrigation
+pivot irrigation
+sprinkler irrigation
+drainage ditch
+drainage ditches
+tile drainage
+farm irrigation
+grain silo
+grain silos
+silo
+silos
+grain bin
+grain bins
+grain elevator
+grain elevators
+grain storage
+grain dryer
+grain dryers
+grain auger
+grain augers
+feed mill
+feed mills
+feedlot
+feedlots
+confined animal feeding operation
+confined animal feeding operations
+factory farm
+factory farms
+industrial livestock
+intensive livestock
+intensive dairy
+dairy farm
+dairy farms
+poultry farm
+poultry farms
+pig farm
+pig farms
+hog farm
+hog farms
+cattle ranch
+cattle ranches
+livestock farm
+livestock farms
+barn
+barns
+farm building
+farm buildings
+farm machinery
+agricultural machinery
+farm equipment
+agricultural equipment
+diesel machinery
+diesel tractor
+tractor trailer
+farm road
+farm roads
+milking machine
+milking machines
+automated milking
+animal housing
+livestock housing
+poultry house
+poultry houses
+conventional seed
+hybrid seed
+hybrid crop
+genetically modified crop
+genetically modified crops
+genetically modified
+precision agriculture
+precision farming
+digital agriculture
+smart farming
+farm automation
+automated agriculture
+harvest logistics
+commercial harvest
+bulk handling
+bulk grain
+industrial crop

@@ -1,17 +1,27 @@
-"""Load the term lists from disk, so the domain never reads a file.
-
-Two lists, because the two gates want opposite things. `DEFAULT_PATH` (agronomy) gates
-document text *before* a fetch and is tuned for recall: a document it rejects is never
-seen again. `PHENOTYPE_PATH` gates an image's caption *after* the fetch and is tuned for
-precision: by then the cost is already paid, and what is left is the published row.
-"""
+"""Load the agriculture term lists from disk, so the domain never reads a file."""
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 
-DEFAULT_PATH = Path("data/agronomy_lexicon.txt")
-PHENOTYPE_PATH = Path("data/phenotype_lexicon.txt")
+AGRICULTURE_PATH = Path("data/agriculture_lexicon.txt")
+CONVENTIONAL_PATH = Path("data/conventional_agriculture_lexicon.txt")
+SUSTAINABLE_PATH = Path("data/sustainable_agriculture_lexicon.txt")
+DEFAULT_PATH = AGRICULTURE_PATH
+
+
+@dataclass(frozen=True, slots=True)
+class AgricultureLexicons:
+    """The broad pre-fetch vocabulary and the two mutually exclusive categories."""
+
+    broad: frozenset[str]
+    conventional: frozenset[str]
+    sustainable: frozenset[str]
+
+    @property
+    def prefetch_terms(self) -> frozenset[str]:
+        return self.broad | self.conventional | self.sustainable
 
 
 def load_lexicon(path: Path = DEFAULT_PATH) -> frozenset[str]:
@@ -22,6 +32,10 @@ def load_lexicon(path: Path = DEFAULT_PATH) -> frozenset[str]:
     )
 
 
-def load_phenotype_lexicon(path: Path = PHENOTYPE_PATH) -> frozenset[str]:
-    """The precision-tuned caption lexicon: organs, traits, symptoms, crops and scenes."""
-    return load_lexicon(path)
+def load_agriculture_lexicons() -> AgricultureLexicons:
+    """Load the broad and category-specific vocabularies used by the scaled build."""
+    return AgricultureLexicons(
+        broad=load_lexicon(AGRICULTURE_PATH),
+        conventional=load_lexicon(CONVENTIONAL_PATH),
+        sustainable=load_lexicon(SUSTAINABLE_PATH),
+    )

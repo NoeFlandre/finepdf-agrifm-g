@@ -8,9 +8,10 @@ because a document rejected here is never seen again.
 from __future__ import annotations
 
 import re
+from collections import defaultdict
 from collections.abc import Collection
 
-WORD = re.compile(r"[a-z]+")
+WORD = re.compile(r"[a-z0-9]+")
 
 DEFAULT_THRESHOLD = 0.005
 """Fitted on 83 labelled documents by `scripts/fit_text_gate.py`.
@@ -30,12 +31,29 @@ def agronomy_score(text: str, terms: Collection[str]) -> float:
     words = WORD.findall(text.lower())
     if not words:
         return 0.0
-    return sum(1 for word in words if word in terms) / len(words)
+    return lexicon_hits(text, terms) / len(words)
+
+
+def lexicon_hits(text: str, terms: Collection[str]) -> int:
+    """Count exact one- and multi-word lexicon matches in normalized text."""
+    tokens = WORD.findall(text.lower())
+    by_length: dict[int, set[tuple[str, ...]]] = defaultdict(set)
+    for term in terms:
+        normalized = tuple(WORD.findall(term.lower()))
+        if normalized:
+            by_length[len(normalized)].add(normalized)
+    return sum(
+        1
+        for start in range(len(tokens))
+        for length, phrases in by_length.items()
+        if start + length <= len(tokens)
+        and tuple(tokens[start : start + length]) in phrases
+    )
 
 
 def contains_lexicon_word(text: str, terms: Collection[str]) -> bool:
-    """Whether text contains at least one whole word from the lexicon."""
-    return any(word in terms for word in WORD.findall(text.lower()))
+    """Whether text contains at least one whole word or phrase from the lexicon."""
+    return lexicon_hits(text, terms) > 0
 
 
 def passes_gate(score: float, *, threshold: float = DEFAULT_THRESHOLD) -> bool:
