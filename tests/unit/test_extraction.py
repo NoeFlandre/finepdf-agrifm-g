@@ -60,21 +60,28 @@ def test_a_missing_crypto_backend_becomes_an_extraction_error(fixtures, monkeypa
         extract_images((fixtures / "one_image.pdf").read_bytes())
 
 
-def test_caption_filter_uses_an_explicit_caption_not_nearby_page_text(monkeypatch):
+def test_captionless_images_are_retained(monkeypatch):
     import agrifm_g.adapters.extraction as extraction
 
     class Page:
         images = [type("ImageItem", (), {"image": Image.new("RGB", (200, 150), "green")})()]
 
         def extract_text(self):
-            return "The wheat trial is discussed here.\nFigure 1. Wheat leaf canopy."
+            return "The wheat trial is discussed here."
 
     class Reader:
         pages = [Page()]
 
     monkeypatch.setattr(extraction, "PdfReader", lambda _: Reader())
 
-    accepted = extract_images(b"pdf", caption_terms={"wheat"})
+    accepted = extract_images(b"pdf")
     assert len(accepted) == 1
-    assert accepted[0].caption == "Figure 1. Wheat leaf canopy."
-    assert extract_images(b"pdf", caption_terms={"maize"}) == ()
+    assert accepted[0].caption == ""
+
+
+def test_caption_terms_are_not_an_extraction_filter():
+    import inspect
+
+    import agrifm_g.adapters.extraction as extraction
+
+    assert "caption_terms" not in inspect.signature(extraction.extract_images).parameters

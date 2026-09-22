@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import io
-from collections.abc import Collection
 from dataclasses import dataclass, replace
 from typing import Any
 
@@ -15,7 +14,6 @@ from pypdf.errors import DependencyError, PyPdfError
 from agrifm_g.adapters.appearance import measure
 from agrifm_g.domain.captions import captions_for_images, extract_caption_blocks
 from agrifm_g.domain.normalisation import is_usable_image
-from agrifm_g.domain.textgate import contains_lexicon_word
 
 
 class ExtractionError(RuntimeError):
@@ -45,10 +43,8 @@ class ExtractedImage:
     caption: str = ""
 
 
-def extract_images(
-    pdf_bytes: bytes, *, caption_terms: Collection[str] | None = None
-) -> tuple[ExtractedImage, ...]:
-    """Return usable PDF images, optionally requiring a caption lexicon hit."""
+def extract_images(pdf_bytes: bytes) -> tuple[ExtractedImage, ...]:
+    """Return every usable embedded raster image, with optional caption metadata."""
     try:
         reader = PdfReader(io.BytesIO(pdf_bytes))
         pages = list(reader.pages)
@@ -57,15 +53,13 @@ def extract_images(
     return tuple(
         image
         for page_number, page in enumerate(pages)
-        for image in _page_images(page_number, page, caption_terms=caption_terms)
+        for image in _page_images(page_number, page)
     )
 
 
 def _page_images(
     page_number: int,
     page: PageObject,
-    *,
-    caption_terms: Collection[str] | None,
 ) -> list[ExtractedImage]:
     try:
         embedded = list(page.images)
@@ -73,7 +67,7 @@ def _page_images(
         return []
     candidates = _extract_page_images(page_number, embedded)
     captions = captions_for_images(extract_caption_blocks(_page_text(page)), len(candidates))
-    return _captioned_images(candidates, captions, caption_terms)
+    return _captioned_images(candidates, captions)
 
 
 def _page_text(page: PageObject) -> str:
@@ -86,14 +80,8 @@ def _page_text(page: PageObject) -> str:
 def _captioned_images(
     candidates: list[ExtractedImage],
     captions: tuple[str, ...],
-    caption_terms: Collection[str] | None,
 ) -> list[ExtractedImage]:
-    extracted = []
-    for image, caption in zip(candidates, captions, strict=True):
-        if caption_terms is not None and not contains_lexicon_word(caption, caption_terms):
-            continue
-        extracted.append(replace(image, caption=caption))
-    return extracted
+    return [replace(image, caption=captions[index]) for index, image in enumerate(candidates)]
 
 
 def _extract_page_images(page_number: int, embedded: list[ImageFile]) -> list[ExtractedImage]:

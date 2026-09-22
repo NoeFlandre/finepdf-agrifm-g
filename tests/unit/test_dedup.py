@@ -83,12 +83,16 @@ def test_the_aspect_ratio_boundary_is_exact():
 
 
 def test_two_colours_is_enough_to_survive_the_single_colour_rule():
-    assert keep_reason(image(colours=2)) is DropReason.FEW_COLOURS
+    assert keep_reason(image(colours=2)) is None
     assert keep_reason(image(colours=0)) is DropReason.SINGLE_COLOUR
 
 
-def test_a_flat_graphic_is_dropped_on_appearance():
-    assert keep_reason(image(colours=500)) is DropReason.FEW_COLOURS
+def test_a_low_colour_graphic_is_not_dropped_without_flatness_evidence():
+    assert keep_reason(image(colours=500)) is None
+
+
+def test_a_flat_colour_image_is_dropped_on_appearance():
+    assert keep_reason(image(dominant_colour_share=0.99)) is DropReason.FLAT_BACKGROUND
 
 
 def test_a_blank_scan_is_dropped_on_appearance():
