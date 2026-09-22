@@ -82,7 +82,7 @@ the published rows.
 
 - **Mutation testing covers the domain only.** Adapters are exercised through fakes and
   fixtures instead; mutating I/O code would mostly measure the fakes.
-- **Twenty-six mutants survive out of 763 (95.3 % killed)**: the current survivors are
+- **Forty-five mutants survive out of 819 (94.5 % killed)**: the current survivors are
   equivalent or low-value cases such as rewritten exception *messages*, `ensure_ascii=None`
   (falsy, so identical to `False`), rounding digits that do not change any rendered value,
   and rewrites of size-category *labels*.
