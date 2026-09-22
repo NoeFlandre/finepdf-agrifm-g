@@ -5,6 +5,38 @@ from scripts.grid5000 import cli
 from scripts.grid5000.remote import CommandResult, PolicyResult
 
 
+def test_terminal_compact_oar_state_is_not_active():
+    status = CommandResult(
+        returncode=0,
+        stdout=(
+            "Job id     Name           User           Submission Date     S Queue\n"
+            "3107758    agrifm-9d22cb1 nflandre       2026-09-22 18:30:32 T p3\n"
+        ),
+        stderr="",
+    )
+
+    assert cli._job_is_active(status) is False
+
+
+def test_running_compact_oar_state_is_active():
+    status = CommandResult(
+        returncode=0,
+        stdout=(
+            "Job id     Name           User           Submission Date     S Queue\n"
+            "3107758    agrifm-9d22cb1 nflandre       2026-09-22 18:30:32 R p3\n"
+        ),
+        stderr="",
+    )
+
+    assert cli._job_is_active(status) is True
+
+
+def test_unreadable_oar_state_is_treated_as_active():
+    status = CommandResult(returncode=1, stdout="", stderr="scheduler unavailable")
+
+    assert cli._job_is_active(status) is True
+
+
 def test_help_lists_all_grid_commands(capsys):
     with pytest.raises(SystemExit) as error:
         cli.main(["--help"])

@@ -28,6 +28,7 @@ from scripts.grid5000.config import (
 from scripts.grid5000.receipt import verify_receipt
 
 _RUN_ID = re.compile(r"^finepdf-[0-9a-f]{12}-[0-9a-f]{12}$")
+_TERMINAL_JOB_STATES = frozenset({"c", "cancelled", "e", "error", "t", "terminated"})
 
 
 def current_commit(source_dir: Path) -> str:
@@ -168,9 +169,26 @@ def _select_site(sites: Sequence[str]) -> str:
 
 
 def _job_is_active(status: remote.CommandResult) -> bool:
-    return status.returncode == 0 and not re.search(
-        r"State\s*:\s*(?:Terminated|Error|Cancelled)", status.stdout
-    )
+    """Treat unreadable or unknown scheduler state as active for safety.
+
+    ``oarstat -j`` uses a compact table by default (the state is the
+    penultimate field, e.g. ``... 18:30:32 T p3``), while some sites expose a
+    verbose ``state = Terminated`` form.  Cleanup must understand both forms.
+    """
+    if status.returncode != 0:
+        return True
+
+    verbose = re.search(r"\bstate\s*[:=]\s*([A-Za-z]+)", status.stdout, re.IGNORECASE)
+    if verbose:
+        return verbose.group(1).lower() not in _TERMINAL_JOB_STATES
+
+    for line in status.stdout.splitlines():
+        fields = line.split()
+        if fields and fields[0].isdigit() and len(fields) >= 3:
+            state = fields[-2].lower()
+            return state not in _TERMINAL_JOB_STATES
+
+    return True
 
 
 def _run_preflight(args: argparse.Namespace) -> int:
