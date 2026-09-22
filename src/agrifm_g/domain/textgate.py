@@ -41,8 +41,7 @@ def lexicon_hits(text: str, terms: Collection[str]) -> int:
         1
         for start in range(len(tokens))
         for length, phrases in by_length.items()
-        if start + length <= len(tokens)
-        and tuple(tokens[start : start + length]) in phrases
+        if start + length <= len(tokens) and tuple(tokens[start : start + length]) in phrases
     )
 
 

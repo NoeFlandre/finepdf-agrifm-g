@@ -76,4 +76,3 @@ def test_greyscale_images_use_the_same_obvious_degenerate_rules():
     assert rejection_rule(grey) is None
     blank = ImageMetrics(256, 0.1, 0.99, 0.0, True)
     assert rejection_rule(blank) is AppearanceRule.MOSTLY_BLANK
-

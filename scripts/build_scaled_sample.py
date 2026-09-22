@@ -339,9 +339,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     staging = args.out_root / "groups"
     dataset = args.out_root / "dataset"
     publish = args.out_root / "publish"
-    terms, conventional_terms, sustainable_terms = _build_lexicon_terms(
-        threshold=args.threshold
-    )
+    terms, conventional_terms, sustainable_terms = _build_lexicon_terms(threshold=args.threshold)
 
     totals = [0, 0, 0, 0, 0]
     group_dirs = []

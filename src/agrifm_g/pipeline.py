@@ -166,9 +166,7 @@ def build_with_outcome(
             continue
         wanted.append((row, split.value if split else ""))
     payloads = [
-        payload
-        for payload in _payloads(wanted, fetcher, workers=workers)
-        if payload is not None
+        payload for payload in _payloads(wanted, fetcher, workers=workers) if payload is not None
     ]
     return BuildOutcome(
         records=write_dataset(out_dir, payloads),
@@ -188,9 +186,7 @@ def _payloads(
     if workers <= 1 or not rows:
         return [_payload_for(row, split, fetcher) for row, split in rows]
     with ThreadPoolExecutor(max_workers=min(workers, len(rows))) as pool:
-        return list(
-            pool.map(lambda item: _payload_for(item[0], item[1], fetcher), rows)
-        )
+        return list(pool.map(lambda item: _payload_for(item[0], item[1], fetcher), rows))
 
 
 def _worth_fetching(row: FinePdfRow, terms: Collection[str], threshold: float) -> bool:

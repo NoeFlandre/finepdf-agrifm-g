@@ -77,8 +77,7 @@ def _count_with_images(records: Sequence[DocumentRecord]) -> int:
 
 def _split_stats(records: Sequence[DocumentRecord]) -> dict[str, dict[str, int]]:
     result = {
-        split.value: {"documents": 0, "with_images": 0, "images": 0}
-        for split in AgricultureSplit
+        split.value: {"documents": 0, "with_images": 0, "images": 0} for split in AgricultureSplit
     }
     for record in records:
         if record.agriculture_split not in result:

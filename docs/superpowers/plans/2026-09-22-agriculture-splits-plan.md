@@ -32,11 +32,14 @@ def test_phrase_terms_match_as_whole_phrases():
 
 
 def test_category_classifier_returns_only_the_stronger_category():
-    assert classify_document(
-        "tractor combine harvester silo",
-        conventional_terms={"tractor", "combine harvester", "silo"},
-        sustainable_terms={"permaculture"},
-    ) is AgricultureSplit.CONVENTIONAL
+    assert (
+        classify_document(
+            "tractor combine harvester silo",
+            conventional_terms={"tractor", "combine harvester", "silo"},
+            sustainable_terms={"permaculture"},
+        )
+        is AgricultureSplit.CONVENTIONAL
+    )
 
 
 def test_category_classifier_discards_ties_and_missing_evidence():
@@ -205,7 +208,10 @@ Test that \`build_with_outcome\`:
 
 ~~~python
 outcome = build_with_outcome(
-    manifest, source, fetcher, out,
+    manifest,
+    source,
+    fetcher,
+    out,
     terms={"agriculture"},
     conventional_terms={"tractor"},
     sustainable_terms={"permaculture"},

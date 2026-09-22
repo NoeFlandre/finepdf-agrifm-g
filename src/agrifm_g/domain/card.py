@@ -174,8 +174,7 @@ def _stats_table(
         counts = splits[split]
         lines.append(f"| {split} documents / images | {counts['documents']} / {counts['images']} |")
     lines.extend(
-        f"| images dropped — {reason} | {count} |"
-        for reason, count in images["dropped"].items()
+        f"| images dropped — {reason} | {count} |" for reason, count in images["dropped"].items()
     )
     return "\n".join(lines)
 

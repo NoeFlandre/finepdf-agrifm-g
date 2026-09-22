@@ -51,9 +51,7 @@ def extract_images(pdf_bytes: bytes) -> tuple[ExtractedImage, ...]:
     except (PyPdfError, DependencyError, ValueError, OSError) as error:
         raise ExtractionError(f"unreadable PDF: {error}") from error
     return tuple(
-        image
-        for page_number, page in enumerate(pages)
-        for image in _page_images(page_number, page)
+        image for page_number, page in enumerate(pages) for image in _page_images(page_number, page)
     )
 
 
