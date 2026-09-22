@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from statistics import median
 
+from agrifm_g.domain.agriculture import AgricultureSplit
 from agrifm_g.domain.dedup import DropReason
 from agrifm_g.domain.records import EXTRACTION_VERSION, DocumentRecord, ImageRef
 
@@ -16,22 +17,40 @@ def build_stats(
     dropped: Mapping[DropReason, int],
     seed: int,
     source_shards: int = 1,
+    text_gated: int = 0,
+    ambiguous: int = 0,
 ) -> dict:
     """Aggregate a finished build. Pure, and deterministic for a given build."""
     return {
         "seed": seed,
         "extraction_version": EXTRACTION_VERSION,
-        "documents": _document_stats(records, sampled, source_shards),
+        "documents": _document_stats(
+            records,
+            sampled,
+            source_shards,
+            text_gated=text_gated,
+            ambiguous=ambiguous,
+        ),
         "images": _image_stats(_all_images(records), dropped),
+        "splits": _split_stats(records),
     }
 
 
-def _document_stats(records: Sequence[DocumentRecord], sampled: int, source_shards: int) -> dict:
+def _document_stats(
+    records: Sequence[DocumentRecord],
+    sampled: int,
+    source_shards: int,
+    *,
+    text_gated: int,
+    ambiguous: int,
+) -> dict:
     return {
         "sampled": sampled,
         "source_shards": source_shards,
         "built": len(records),
         "fetch_yield": _ratio(len(records), sampled),
+        "text_gated": text_gated,
+        "ambiguous": ambiguous,
         "with_images": _count_with_images(records),
         "text_length": _summarise(_text_lengths(records)),
         "images_per_document": _summarise(_image_counts(records)),
@@ -54,6 +73,21 @@ def _all_images(records: Sequence[DocumentRecord]) -> list[ImageRef]:
 
 def _count_with_images(records: Sequence[DocumentRecord]) -> int:
     return sum(1 for record in records if record.images)
+
+
+def _split_stats(records: Sequence[DocumentRecord]) -> dict[str, dict[str, int]]:
+    result = {
+        split.value: {"documents": 0, "with_images": 0, "images": 0}
+        for split in AgricultureSplit
+    }
+    for record in records:
+        if record.agriculture_split not in result:
+            continue
+        counts = result[record.agriculture_split]
+        counts["documents"] += 1
+        counts["with_images"] += int(bool(record.images))
+        counts["images"] += record.n_images
+    return result
 
 
 def _text_lengths(records: Sequence[DocumentRecord]) -> list[int]:

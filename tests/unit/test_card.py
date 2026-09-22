@@ -14,7 +14,9 @@ def a_card(**kwargs):
 def test_the_front_matter_declares_the_parquet_config():
     card = a_card()
     assert card.startswith("---\n")
-    assert "path: data/train-*.parquet" in card
+    assert "path: data/conventional-*.parquet" in card
+    assert "path: data/sustainable-*.parquet" in card
+    assert "path: data/train-*.parquet" not in card
     assert "license: cc-by-4.0" in card
 
 
@@ -24,11 +26,11 @@ def test_every_number_comes_from_the_build():
     assert "| documents sampled | 10 |" in card
     assert "40%" in card
     assert "seed `42`" in card
-    assert "samples 3 English FinePDF shards" in card
+    assert "sampled 3 English FinePDF shards" in card
 
 
 def test_the_caveat_is_stated_plainly():
-    assert "not semantic agricultural filtering" in a_card()
+    assert "captions are optional metadata and never a filter" in a_card()
 
 
 def test_the_schema_table_lists_every_published_column():

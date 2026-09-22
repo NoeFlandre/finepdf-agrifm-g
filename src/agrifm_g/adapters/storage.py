@@ -24,6 +24,7 @@ class DocumentPayload:
     text: str
     pdf_bytes: bytes
     images: tuple[ExtractedImage, ...]
+    agriculture_split: str = ""
 
 
 def write_dataset(out_dir: Path, payloads: Iterable[DocumentPayload]) -> list[DocumentRecord]:
@@ -65,6 +66,7 @@ def _write_document(out_dir: Path, payload: DocumentPayload) -> DocumentRecord:
         pdf_sha256=hashlib.sha256(payload.pdf_bytes).hexdigest(),
         text=payload.text,
         images=images,
+        agriculture_split=payload.agriculture_split,
     )
 
 

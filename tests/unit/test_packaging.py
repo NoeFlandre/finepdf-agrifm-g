@@ -48,6 +48,7 @@ def a_build(tmp_path, n_documents=2, duplicate=False):
             source_url=f"https://example.org/{i}.pdf",
             text="hello",
             pdf_bytes=b"%PDF-1.4 fake",
+            agriculture_split="conventional" if i == 0 else "sustainable",
             images=(an_image(0, 1), an_image(1, 2))
             if duplicate
             else (an_image(0, 1 + 10 * i), an_image(1, 2 + 10 * i)),
@@ -64,7 +65,9 @@ def test_packaging_writes_parquet_stats_and_a_card(tmp_path):
     out.mkdir()
     package = package_dataset(build, out, repo_id="me/x", records=records, sampled=10, seed=3)
     assert package.n_rows == 4
-    assert list((out / "data").glob("train-*.parquet"))
+    assert list((out / "data").glob("conventional-*.parquet"))
+    assert list((out / "data").glob("sustainable-*.parquet"))
+    assert not list((out / "data").glob("train-*.parquet"))
     assert json.loads((out / "stats.json").read_text())["documents"]["sampled"] == 10
     assert "me/x" in (out / "README.md").read_text()
 
@@ -76,10 +79,13 @@ def test_the_published_rows_load_back_with_decoded_images(tmp_path):
     out = tmp_path / "publish"
     out.mkdir()
     package_dataset(build, out, repo_id="me/x", records=records, sampled=2, seed=3)
-    dataset = load_dataset("parquet", data_files=str(out / "data" / "*.parquet"), split="train")
+    dataset = load_dataset(
+        "parquet", data_files=str(out / "data" / "conventional-*.parquet"), split="train"
+    )
     row = dataset[0]
     assert row["image"].size == (row["width"], row["height"])
     assert row["doc_id"] == "doc-0"
+    assert row["agriculture_split"] == "conventional"
 
 
 def test_duplicate_images_are_dropped_and_counted(tmp_path):

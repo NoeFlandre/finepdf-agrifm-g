@@ -123,7 +123,7 @@ def test_a_malformed_payload_is_rejected():
 
 
 GOLDEN = (
-    '{"doc_id": "doc-1", "extraction_version": 5, '
+    '{"agriculture_split": "", "doc_id": "doc-1", "extraction_version": 6, '
     '"images": [{"caption": "Figure 1. wheat leaf", "dominant_colour_share": 0.02, '
     '"edge_density": 0.25, "format": "png", "greyscale": false, '
     '"height": 120, "n_colours": 8, "near_white_share": 0.02, "page": 0, '

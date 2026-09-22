@@ -25,6 +25,7 @@ def record(n_images=2, doc_id="d1"):
             )
             for i in range(n_images)
         ),
+        agriculture_split="conventional",
     )
 
 
@@ -53,6 +54,7 @@ def test_a_row_carries_every_declared_column_with_the_right_value():
     row = image_rows([record(2)])[1]
     assert row == {
         "doc_id": "d1",
+        "agriculture_split": "conventional",
         "page": 1,
         "image_index": 1,
         "width": 11,
@@ -66,5 +68,5 @@ def test_a_row_carries_every_declared_column_with_the_right_value():
         "pdf_sha256": "b" * 64,
         "text": "hello",
         "n_images_in_doc": 2,
-        "extraction_version": 5,
+        "extraction_version": 6,
     }

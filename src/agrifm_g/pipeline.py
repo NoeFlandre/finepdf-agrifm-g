@@ -19,6 +19,7 @@ from agrifm_g.adapters.finepdf import (
 )
 from agrifm_g.adapters.pdfsource import FetchError, PdfFetcher
 from agrifm_g.adapters.storage import DocumentPayload, write_dataset
+from agrifm_g.domain.agriculture import AgricultureSplit, classify_document
 from agrifm_g.domain.records import DocumentRecord
 from agrifm_g.domain.sampling import select_indices
 from agrifm_g.domain.textgate import DEFAULT_THRESHOLD, agronomy_score, passes_gate
@@ -105,6 +106,7 @@ class BuildOutcome:
     records: list[DocumentRecord]
     sampled: int
     gated_out: int
+    ambiguous_out: int = 0
 
 
 def build_dataset(
@@ -115,7 +117,8 @@ def build_dataset(
     *,
     terms: Collection[str] = (),
     threshold: float = DEFAULT_THRESHOLD,
-    caption_terms: Collection[str] | None = None,
+    conventional_terms: Collection[str] | None = None,
+    sustainable_terms: Collection[str] | None = None,
     workers: int = DEFAULT_WORKERS,
 ) -> list[DocumentRecord]:
     """Materialise the manifest into a dataset directory, skipping unusable documents."""
@@ -126,7 +129,8 @@ def build_dataset(
         out_dir,
         terms=terms,
         threshold=threshold,
-        caption_terms=caption_terms,
+        conventional_terms=conventional_terms,
+        sustainable_terms=sustainable_terms,
         workers=workers,
     ).records
 
@@ -139,7 +143,8 @@ def build_with_outcome(
     *,
     terms: Collection[str] = (),
     threshold: float = DEFAULT_THRESHOLD,
-    caption_terms: Collection[str] | None = None,
+    conventional_terms: Collection[str] | None = None,
+    sustainable_terms: Collection[str] | None = None,
     workers: int = DEFAULT_WORKERS,
 ) -> BuildOutcome:
     """As `build_dataset`, but also reports how many documents the text gate skipped.
@@ -148,32 +153,43 @@ def build_with_outcome(
     everything, so an empty lexicon means "no gate" rather than "no documents".
     """
     rows = source.rows(manifest.indices)
-    wanted = [row for row in rows if _worth_fetching(row, terms, threshold)]
+    wanted: list[tuple[FinePdfRow, str]] = []
+    gated_out = 0
+    ambiguous_out = 0
+    for row in rows:
+        if not _worth_fetching(row, terms, threshold):
+            gated_out += 1
+            continue
+        split = _classify_if_configured(row.text, conventional_terms, sustainable_terms)
+        if split is None and conventional_terms is not None and sustainable_terms is not None:
+            ambiguous_out += 1
+            continue
+        wanted.append((row, split.value if split else ""))
     payloads = [
         payload
-        for payload in _payloads(wanted, fetcher, caption_terms=caption_terms, workers=workers)
+        for payload in _payloads(wanted, fetcher, workers=workers)
         if payload is not None
     ]
     return BuildOutcome(
         records=write_dataset(out_dir, payloads),
         sampled=len(rows),
-        gated_out=len(rows) - len(wanted),
+        gated_out=gated_out,
+        ambiguous_out=ambiguous_out,
     )
 
 
 def _payloads(
-    rows: list[FinePdfRow],
+    rows: list[tuple[FinePdfRow, str]],
     fetcher: PdfFetcher,
     *,
-    caption_terms: Collection[str] | None,
     workers: int,
 ) -> list[DocumentPayload | None]:
     """Retrieve and extract in manifest order, overlapping the waiting when asked to."""
     if workers <= 1 or not rows:
-        return [_payload_for(row, fetcher, caption_terms=caption_terms) for row in rows]
+        return [_payload_for(row, split, fetcher) for row, split in rows]
     with ThreadPoolExecutor(max_workers=min(workers, len(rows))) as pool:
         return list(
-            pool.map(lambda row: _payload_for(row, fetcher, caption_terms=caption_terms), rows)
+            pool.map(lambda item: _payload_for(item[0], item[1], fetcher), rows)
         )
 
 
@@ -185,13 +201,12 @@ def _worth_fetching(row: FinePdfRow, terms: Collection[str], threshold: float) -
 
 def _payload_for(
     row: FinePdfRow,
+    split: str,
     fetcher: PdfFetcher,
-    *,
-    caption_terms: Collection[str] | None,
 ) -> DocumentPayload | None:
     try:
         pdf_bytes = fetcher.fetch(row.url)
-        images = extract_images(pdf_bytes, caption_terms=caption_terms)
+        images = extract_images(pdf_bytes)
     except (FetchError, ExtractionError):
         return None
     return DocumentPayload(
@@ -200,4 +215,15 @@ def _payload_for(
         text=row.text,
         pdf_bytes=pdf_bytes,
         images=images,
+        agriculture_split=split,
     )
+
+
+def _classify_if_configured(
+    text: str,
+    conventional_terms: Collection[str] | None,
+    sustainable_terms: Collection[str] | None,
+) -> AgricultureSplit | None:
+    if conventional_terms is None or sustainable_terms is None:
+        return None
+    return classify_document(text, conventional_terms, sustainable_terms)

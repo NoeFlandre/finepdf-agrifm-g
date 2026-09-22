@@ -9,6 +9,7 @@ from agrifm_g.domain.records import EXTRACTION_VERSION, DocumentRecord
 COLUMNS = (
     "image",
     "doc_id",
+    "agriculture_split",
     "page",
     "image_index",
     "width",
@@ -39,6 +40,7 @@ def _row(record: DocumentRecord, index: int) -> dict:
     image = record.images[index]
     return {
         "doc_id": record.doc_id,
+        "agriculture_split": record.agriculture_split,
         "page": image.page,
         "image_index": index,
         "width": image.width,

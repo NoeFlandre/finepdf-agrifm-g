@@ -116,6 +116,42 @@ def test_the_outcome_reports_what_was_sampled(tmp_path, fixtures):
     assert outcome.sampled == 2
 
 
+def test_category_text_assigns_documents_and_drops_ambiguous_ones(tmp_path, fixtures):
+    from agrifm_g.pipeline import build_with_outcome
+
+    source = FakeRowSource(
+        [
+            FinePdfRow("conventional", "https://example.org/c.pdf", "agriculture tractor silo"),
+            FinePdfRow("sustainable", "https://example.org/s.pdf", "agriculture permaculture"),
+            FinePdfRow(
+                "ambiguous",
+                "https://example.org/a.pdf",
+                "agriculture tractor permaculture",
+            ),
+        ]
+    )
+    fetcher = FakeFetcher((fixtures / "one_image.pdf").read_bytes())
+    manifest = build_manifest(source, size=3, seed=1)
+
+    outcome = build_with_outcome(
+        manifest,
+        source,
+        fetcher,
+        tmp_path,
+        terms={"agriculture"},
+        threshold=0.05,
+        conventional_terms={"tractor", "silo"},
+        sustainable_terms={"permaculture"},
+    )
+
+    assert [(record.doc_id, record.agriculture_split) for record in outcome.records] == [
+        ("conventional", "conventional"),
+        ("sustainable", "sustainable"),
+    ]
+    assert outcome.ambiguous_out == 1
+    assert fetcher.calls == ["https://example.org/c.pdf", "https://example.org/s.pdf"]
+
+
 def test_concurrent_retrieval_preserves_manifest_order(tmp_path, fixtures):
     """Threads overlap the waiting; they must not reorder the build."""
     manifest = build_manifest(FakeRowSource(rows(8)), size=8, seed=5)

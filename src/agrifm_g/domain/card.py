@@ -4,54 +4,52 @@ from __future__ import annotations
 
 from typing import Any
 
-from agrifm_g.domain.textgate import DEFAULT_THRESHOLD
-
 SCHEMA_ROWS = (
-    ("image", "image", "the extracted image itself, PNG, decoded by `datasets`"),
-    ("doc_id", "string", "FinePDF document id, lowercased and reduced to `[a-z0-9-_]`"),
-    ("page", "int32", "0-based page the image was embedded in"),
-    ("image_index", "int32", "0-based position of the image within its document"),
-    ("width", "int32", "pixels"),
-    ("height", "int32", "pixels"),
-    ("image_sha256", "string", "content hash; unique across the dataset"),
-    (
-        "n_colours",
-        "int32",
-        "distinct colours in a 256 px thumbnail — the appearance filter's main signal",
-    ),
-    ("image_path", "string", "path the image had in the build directory"),
-    ("edge_density", "float32", "share of edge pixels in a 256 px thumbnail"),
-    ("caption", "string", "explicit figure caption extracted from the PDF page"),
-    ("source_url", "string", "URL the PDF was crawled from — the provenance record"),
-    ("pdf_sha256", "string", "hash of the retrieved PDF, so a refetch is verifiable"),
-    ("text", "string", "FinePDF's extracted text for the whole document"),
-    ("n_images_in_doc", "int32", "how many images that document contributed"),
-    ("extraction_version", "int32", "bumped when extraction changes stored bytes"),
+    ("image", "image", "the extracted embedded raster image, decoded by `datasets`"),
+    ("doc_id", "string", "FinePDF document id, lowercased and made filesystem-safe"),
+    ("agriculture_split", "string", "the mutually exclusive conventional or sustainable split"),
+    ("page", "int32", "0-based page where the image was embedded"),
+    ("image_index", "int32", "0-based image position within its document"),
+    ("width", "int32", "image width in pixels"),
+    ("height", "int32", "image height in pixels"),
+    ("image_sha256", "string", "content hash, unique across the published rows"),
+    ("image_path", "string", "path in the temporary build directory"),
+    ("n_colours", "int32", "distinct colours measured on a thumbnail"),
+    ("edge_density", "float32", "diagnostic edge share; not a semantic filter"),
+    ("caption", "string", "optional PDF caption when one was detected"),
+    ("source_url", "string", "original PDF URL for provenance"),
+    ("pdf_sha256", "string", "hash of the retrieved PDF"),
+    ("text", "string", "FinePDF English document text used for classification"),
+    ("n_images_in_doc", "int32", "number of retained images from the document"),
+    ("extraction_version", "int32", "version of the stored extraction contract"),
 )
 
 
 def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: int) -> str:
-    """Render the compact reader-facing card from the build's own numbers."""
+    """Render the reader-facing card from the finished build's own numbers."""
     documents, images = stats["documents"], stats["images"]
     return "\n".join(
         [
             _front_matter(n_rows),
             f"# {repo_id}",
             "",
-            "A reproducible [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs)"
-            " sample flattened to **one row per retained embedded raster image**. Each row keeps"
-            " the image caption, document text and provenance for the AGRIFM-G experiment.",
+            "An English-only [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs)"
+            " image dataset for general agricultural scenes and operations. Each row is one"
+            " retained embedded raster image with document text, optional caption, and provenance.",
             "",
-            "```python",
+            "## Load the splits",
+            "",
+            "~~~python",
             "from datasets import load_dataset",
             "",
-            f'ds = load_dataset("{repo_id}", split="train")',
-            'ds[0]["image"]  # PIL.Image',
-            "```",
+            f'dataset = load_dataset("{repo_id}")',
+            'dataset["conventional"][0]["image"]  # PIL.Image',
+            'dataset["sustainable"][0]["image"]  # PIL.Image',
+            "~~~",
             "",
             "## Contents",
             "",
-            _stats_table(documents, images, n_rows, n_shards),
+            _stats_table(documents, images, stats["splits"], n_rows, n_shards),
             "",
             "## Schema",
             "",
@@ -59,60 +57,48 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             "",
             "## Selection and filtering",
             "",
-            f"- **Document gate:** documents below the {DEFAULT_THRESHOLD:.1%} agronomy-lexicon"
-            " word-share threshold are not downloaded; the threshold keeps every labelled"
-            " positive.",
-            "",
-            "- **Caption gate:** only a line beginning with a figure label — `Figure`, `Fig.`,"
-            " `Photo`, `Plate`, `Image`, `Figura`, `Abb.` — plus an identifier (or, unnumbered, a"
-            " colon or dash) is a caption; nearby page prose is ignored. The caption must contain"
-            " a whole-word hit from the **phenotype lexicon** (organs, traits, symptoms, crops and"
-            " growing scenes) and is published in `caption`. Generic agricultural context words"
-            " such as *field*, *soil*, *yield* and *trial* are deliberately excluded there,"
-            " because they select charts and maps rather than pictures of plants.",
-            "",
-            "- **Cheap visual gate:** images must be at least 32 px on each side,"
-            " non-single-colour, no wider than 20:1 and unique by SHA-256. A colour image must"
-            " then use more than 8,000 colours and have edge density ≥ 0.18; near-white,"
-            " flat-background, sparse line-art and low-texture images are dropped. A **greyscale**"
-            " image is judged on texture alone (edge density ≥ 0.30), because an 8-bit greyscale"
-            " photograph holds at most 256 colours and the colour-count rule would reject every"
-            " scanned field photograph and electron micrograph on a technicality.",
-            "",
-            "On 567 hand-labelled images, the strict appearance rules removed **77.6%** at"
-            " **100% precision**, losing none of the 10 labelled keeps. This is not semantic"
-            " agricultural filtering; unrelated photographs and vector figures can remain.",
+            "- The input is FinePDF's English `eng_Latn` text. A broad agriculture lexicon"
+            " keeps documents worth downloading.",
+            "- Each passing document is assigned to the category with more exact matches from"
+            " the extended conventional and sustainable agriculture lexicons. Ties and documents"
+            " without category evidence are discarded. An image is never duplicated across splits.",
+            "- All usable embedded raster images from an accepted document are considered;"
+            " captions are optional metadata and never a filter.",
+            "- Cheap sanity filters remove invalid, tiny, single-colour, nearly blank,"
+            " overwhelmingly flat-colour, extreme-aspect-ratio, and duplicate images."
+            " Colour counts and edge density"
+            " remain diagnostic fields, not restrictive phenotype rules.",
             "",
             "## Reproduce and limitations",
             "",
-            f"The bounded run samples {documents['source_shards']} English FinePDF shards with seed"
-            f" `{stats['seed']}`, one row group each, so the sample is not an accident of a single"
-            " crawl segment. PDFs are fetched from their original URLs and"
-            " are not redistributed; `source_url` and `pdf_sha256` preserve provenance, but source"
+            f"The build sampled {documents['source_shards']} English FinePDF shards with seed"
+            f" `{stats['seed']}`. PDFs are fetched from their original URLs and are not"
+            " redistributed; `source_url` and `pdf_sha256` preserve provenance, but source"
             " licences are not audited.",
             "",
-            "```bash",
+            "~~~bash",
             "uv run python -m scripts.grid5000 preflight",
             "uv run python -m scripts.grid5000 submit --repo <repo>",
             "uv run python -m scripts.grid5000 fetch --run-id <run-id>",
-            "```",
+            "~~~",
             "",
             f"- {documents['fetch_yield']:.0%} of sampled documents were retrieved and parsed in"
             " this run; FinePDF URLs date from 2023 and many are unavailable.",
-            "- Only embedded raster images are extracted: vector figures, OCR text and page"
-            " renderings are out of scope. Caption layouts outside the explicit-label rule are"
-            " dropped, and multi-image pages are paired by reading order.",
+            "- Only embedded raster images are extracted. Vector figures, OCR text and full-page"
+            " renderings are out of scope. Document-level classification can leave unrelated"
+            " figures"
+            " in an otherwise relevant paper; this is intentional for recall and diversity.",
             "",
             "## Citation",
             "",
-            "```bibtex",
+            "~~~bibtex",
             "@misc{finepdf_agrifm_g,",
             f"  title  = {{{repo_id}}},",
             "  author = {Flandre, No\\'e},",
             "  year   = {2026},",
             f"  url    = {{https://huggingface.co/datasets/{repo_id}}}",
             "}",
-            "```",
+            "~~~",
             "",
         ]
     )
@@ -122,7 +108,7 @@ def _front_matter(n_rows: int) -> str:
     return "\n".join(
         [
             "---",
-            "pretty_name: AGRIFM-G FinePDF image sample",
+            "pretty_name: FinePDF Agriculture Images",
             "license: cc-by-4.0",
             "language:",
             "  - en",
@@ -135,15 +121,17 @@ def _front_matter(n_rows: int) -> str:
             "  - image-classification",
             "tags:",
             "  - agriculture",
-            "  - plant-phenotyping",
+            "  - conventional-agriculture",
+            "  - sustainable-agriculture",
             "  - finepdf",
             "  - document-images",
-            "  - proof-of-concept",
             "configs:",
             "  - config_name: default",
             "    data_files:",
-            "      - split: train",
-            "        path: data/train-*.parquet",
+            "      - split: conventional",
+            "        path: data/conventional-*.parquet",
+            "      - split: sustainable",
+            "        path: data/sustainable-*.parquet",
             "---",
             "",
         ]
@@ -157,8 +145,13 @@ def _size_category(n_rows: int) -> str:
     return "100K<n<1M"
 
 
-def _stats_table(documents: dict, images: dict, n_rows: int, n_shards: int) -> str:
-    dropped = images["dropped"]
+def _stats_table(
+    documents: dict,
+    images: dict,
+    splits: dict[str, dict[str, int]],
+    n_rows: int,
+    n_shards: int,
+) -> str:
     lines = [
         "| | |",
         "| --- | --- |",
@@ -167,6 +160,8 @@ def _stats_table(documents: dict, images: dict, n_rows: int, n_shards: int) -> s
         f"| documents sampled | {documents['sampled']} |",
         f"| documents retrieved and parsed | {documents['built']} "
         f"({documents['fetch_yield']:.0%}) |",
+        f"| documents skipped by broad text gate | {documents['text_gated']} |",
+        f"| ambiguous documents skipped | {documents['ambiguous']} |",
         f"| documents contributing images | {documents['with_images']} |",
         f"| image width (min / median / max) | {images['width']['min']} / "
         f"{images['width']['median']} / {images['width']['max']} px |",
@@ -175,7 +170,13 @@ def _stats_table(documents: dict, images: dict, n_rows: int, n_shards: int) -> s
         f"| total pixels | {images['megapixels']} MP |",
         f"| text length (median) | {documents['text_length']['median']} characters |",
     ]
-    lines.extend(f"| images dropped — {reason} | {count} |" for reason, count in dropped.items())
+    for split in ("conventional", "sustainable"):
+        counts = splits[split]
+        lines.append(f"| {split} documents / images | {counts['documents']} / {counts['images']} |")
+    lines.extend(
+        f"| images dropped — {reason} | {count} |"
+        for reason, count in images["dropped"].items()
+    )
     return "\n".join(lines)
 
 
