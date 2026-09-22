@@ -84,7 +84,7 @@ dataset["sustainable"][0]["image"]  # PIL.Image
 - The input is FinePDF's English `eng_Latn` text. A broad agriculture lexicon keeps documents worth downloading.
 - Each passing document is assigned to the category with more exact matches from the extended conventional and sustainable agriculture lexicons. Ties and documents without category evidence are discarded. An image is never duplicated across splits.
 - All usable embedded raster images from an accepted document are considered; captions are optional metadata and never a filter.
-- Cheap sanity filters remove invalid, tiny, single-colour, nearly blank, overwhelmingly flat-colour, extreme-aspect-ratio, and duplicate images. Colour counts and edge density remain diagnostic fields, not restrictive phenotype rules.
+- Cheap sanity filters remove invalid, tiny, single-colour, nearly blank, overwhelmingly flat-colour, extreme-aspect-ratio, and duplicate images. Colour counts and edge density remain diagnostic fields, not semantic filters.
 
 ## Reproduce and limitations
 

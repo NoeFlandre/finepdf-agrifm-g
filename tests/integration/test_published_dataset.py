@@ -18,23 +18,27 @@ REPO = os.environ.get("AGRIFM_G_REPO", "NoeFlandre/finepdf-agrifm-g")
 def dataset():
     from datasets import load_dataset
 
-    return load_dataset(REPO, split="train")
+    return load_dataset(REPO)
 
 
-def test_the_published_schema_matches_what_we_declare(dataset):
-    assert dict(dataset.features) == dict(features())
+@pytest.mark.parametrize("split", ("conventional", "sustainable"))
+def test_the_published_schema_matches_what_we_declare(dataset, split):
+    assert dict(dataset[split].features) == dict(features())
 
 
-def test_the_dataset_is_not_empty(dataset):
-    assert dataset.num_rows > 0
+@pytest.mark.parametrize("split", ("conventional", "sustainable"))
+def test_the_dataset_is_not_empty(dataset, split):
+    assert dataset[split].num_rows > 0
 
 
-def test_a_row_decodes_to_the_stored_dimensions(dataset):
-    row = dataset[0]
+@pytest.mark.parametrize("split", ("conventional", "sustainable"))
+def test_a_row_decodes_to_the_stored_dimensions(dataset, split):
+    row = dataset[split][0]
     assert row["image"].size == (row["width"], row["height"])
     assert row["source_url"].startswith("http")
+    assert row["agriculture_split"] == split
 
 
 def test_image_hashes_are_unique_across_the_dataset(dataset):
-    hashes = dataset["image_sha256"]
+    hashes = dataset["conventional"]["image_sha256"] + dataset["sustainable"]["image_sha256"]
     assert len(set(hashes)) == len(hashes)

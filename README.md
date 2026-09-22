@@ -1,59 +1,68 @@
-# AGRIFM-G — FinePDF extraction POC
+# AGRIFM-G — FinePDF agriculture images
 
-[![qa](https://github.com/NoeFlandre/finepdf-agrifm-g/actions/workflows/qa.yml/badge.svg)](https://github.com/NoeFlandre/finepdf-agrifm-g/actions/workflows/qa.yml)
+This repository builds an English-only image dataset from [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs).
+The published dataset has two mutually exclusive splits:
 
-A minimal, reproducible pipeline that turns [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs)
-documents into a dataset of PDFs, text and images — the first step towards the corpus
-described in [DATASET_GOAL.md](DATASET_GOAL.md).
+- `conventional`: tractors, machinery, silos, farm buildings, field operations, and other conventional or industrial agriculture scenes.
+- `sustainable`: permaculture, agroecology, agroforestry, hydroponics, organic and regenerative practices, and related sustainable-farm scenes.
 
-**This is a proof of concept.** It applies only cheap caption-lexicon and appearance filters,
-not semantic agricultural or phenotyping filtering; see [known limitations](docs/known-limitations.md)
-before drawing conclusions from it.
+The pipeline is fully automatic. It applies a broad text gate, classifies each accepted document with extended category lexicons, extracts every usable embedded raster image, and applies only cheap visual sanity checks. Captions are optional metadata and never a filter.
+
+## Run locally on a small sample
 
 ```bash
 uv sync --all-groups
-uv run agrifm-g build   --manifest data/sample_manifest.json --out out/dataset
-uv run agrifm-g verify  --dataset out/dataset
+uv run agrifm-g build --manifest data/sample_manifest.json --out out/dataset
+uv run agrifm-g verify --dataset out/dataset
 uv run agrifm-g package --dataset out/dataset --out out/publish --repo <hf-repo>
 ```
 
-For the bounded scaled experiment (thirty FinePDF shards, one row group each, 30,000
-documents):
+## Run the scaled build on Grid’5000
+
+Heavy PDF work runs only inside one reserved Grid’5000 node. The Mac submits, monitors, fetches, and verifies the artifact:
 
 ```bash
 uv run python -m scripts.grid5000 preflight
-uv run python -m scripts.grid5000 submit --repo <hf-repo>
-# after OAR reports completion:
+uv run python -m scripts.grid5000 submit --repo NoeFlandre/finepdf-agrifm-g
+uv run python -m scripts.grid5000 status --run-id <run-id>
 uv run python -m scripts.grid5000 fetch --run-id <run-id>
 ```
 
-The scaled extractor is Grid’5000-only; the Mac performs submission, monitoring and local
-artifact verification, not the heavy PDF work. The runner checks usage-policy conformance on
-every configured site, submits one bounded CPU job, and resumes completed row groups after an
-interrupted allocation. Use `cleanup --run-id <run-id> --confirm-run-id <run-id>` only after
-the fetched artifact has been verified.
+The runner checks the usage policy before and after submission, requests bounded CPU resources, checkpoints each row group atomically, and refuses duplicate active submissions. Clean up a completed remote run only after local receipt and dataset verification:
 
-If an OAR allocation terminates before packaging, rerun the same submission options with
-`--resume`; the runner verifies that the previous job is terminal and reuses only completed
-row-group checkpoints.
+```bash
+uv run python -m scripts.grid5000 cleanup \
+  --run-id <run-id> --confirm-run-id <run-id>
+```
 
-`build` produces a working directory; `package` produces what is published: deduplicated
-parquet shards with an `Image()` column, generated `stats.json` and a generated card.
+## Load the published dataset
 
-- Published sample: <https://huggingface.co/datasets/NoeFlandre/finepdf-agrifm-g>
-- What we actually want to keep: [relevance policy](docs/relevance-policy.md)
-- Documentation: `uv run mkdocs serve`
-- Full quality gauntlet: `make qa`
+```python
+from datasets import load_dataset
+
+dataset = load_dataset("NoeFlandre/finepdf-agrifm-g")
+dataset["conventional"][0]
+dataset["sustainable"][0]
+```
+
+The card and viewer are generated from the same parquet files and statistics. Each row includes the decoded `image`, `agriculture_split`, source document text, optional caption, provenance URL, and content hashes.
+
+Run the local quality gates with:
+
+```bash
+make qa
+```
+
+See [the quickstart](docs/quickstart.md), [the schema](docs/schema.md), and [the limitations](docs/known-limitations.md) for details.
 
 ## Layout
 
-| Path | What it holds |
+| Path | Purpose |
 | --- | --- |
-| `src/agrifm_g/domain/` | pure logic: sampling, records, normalisation, verification |
-| `src/agrifm_g/adapters/` | every side effect: FinePDF, HTTP, PDF parsing, disk, the Hub |
-| `src/agrifm_g/pipeline.py` | composition of the above |
-| `src/agrifm_g/cli.py` | `sample`, `build`, `verify`, `publish` |
-| `scripts/build_scaled_sample.py` | bounded multi-row-group build and package |
-| `scripts/grid5000/` | policy-aware Grid’5000 submission, worker and receipt workflow |
-| `data/sample_manifest.json` | the frozen, seeded sample |
-| `docs/adr/` | why it is shaped this way |
+| `src/agrifm_g/domain/` | Pure classification, filtering, records, sampling, and verification logic |
+| `src/agrifm_g/adapters/` | FinePDF, PDF, storage, packaging, and Hugging Face boundaries |
+| `src/agrifm_g/pipeline.py` | Text gate, category assignment, fetching, and extraction |
+| `src/agrifm_g/cli.py` | Small-sample build, package, verify, and publish commands |
+| `scripts/build_scaled_sample.py` | Resumable agriculture-split build and packaging |
+| `scripts/grid5000/` | Policy-aware Grid’5000 submission, worker, receipt, and fetch workflow |
+| `data/*agriculture*lexicon.txt` | Broad and category-specific English vocabularies |

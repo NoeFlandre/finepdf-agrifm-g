@@ -1,43 +1,17 @@
 # AGRIFM-G
 
-A minimal, reproducible pipeline that turns FinePDF documents into a
-text + image dataset. Start with the [quickstart](quickstart.md); read
-[known limitations](known-limitations.md) before trusting anything here.
+AGRIFM-G is a reproducible, fully automatic pipeline that turns English FinePDF documents into two agriculture image splits.
 
-## Image Dataset Goal
+## Split contract
 
-Build a **large, diverse dataset of ground-level agricultural images** extracted from FinePDF to pretrain **AGRIFM-G**, a visual foundation model for **plant phenotyping**.
+`conventional` covers operational and conventional agriculture: tractors, harvesters, tillage, irrigation equipment, silos, barns, farm vehicles, crop production, and related farm work.
 
-Prioritize:
-- Crops, plants, fruits, leaves, wheat ears, grains, seedlings
-- Different species, cultivars and growth stages
-- Diseases and biotic/abiotic stress
-- Field scenes and agricultural activities
-- Images useful for counting, detection, segmentation and phenotype characterization
+`sustainable` covers sustainable and alternative agriculture: permaculture, agroecology, agroforestry, hydroponics, aquaponics, organic and regenerative farming, conservation practices, composting, and related systems.
 
-Exclude:
-- Satellite/remote-sensing imagery
-- Icons, diagrams, plots and non-photographic figures
-- Generic images unrelated to agriculture or phenotyping
+Documents are classified from their text with extended English lexicons. A tie or missing category evidence is discarded, so no image is present in both splits. Every usable embedded raster image from an accepted document is retained; captions may be stored but are not required.
 
-## Dataset Types Sought
+The only visual exclusions are cheap sanity checks for invalid, tiny, single-colour, nearly blank, overwhelmingly flat-colour, extreme-aspect-ratio, or exact-duplicate images. The pipeline does not claim semantic image understanding.
 
-The corpus is built from three **complementary** dataset families. The objective is
-complementarity, not raw image count.
+Heavy scaled extraction runs on Grid’5000 with resumable row-group checkpoints. The local machine handles orchestration and final artifact verification.
 
-### 1. Pure phenotyping
-Precise images of plants, organs, canopies and plots, acquired via UAV, ground-based
-platforms, greenhouses, etc.
-*Profile: disparate, condensed, precise.*
-
-### 2. Operational agricultural images
-Photos of farms, tools, machinery and practices (grafting, pruning, irrigation,
-harvesting, etc.).
-*Profile: disparate, moderately condensed, diverse.*
-
-### 3. Niche datasets
-Infrequent species, rare crops, or very fine-grained taxonomies.
-*Profile: disparate, sparsely condensed, moderately diverse.*
-
-**Selection principle:** prefer datasets that fill gaps across these three families
-rather than maximizing the total number of images.
+Start with the [quickstart](quickstart.md), then read the [schema](schema.md) and [known limitations](known-limitations.md).

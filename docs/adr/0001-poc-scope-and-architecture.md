@@ -34,14 +34,14 @@ cli → pipeline → adapters → domain
 
 ## Current scope and remaining boundary
 
-The bounded experiment now includes cheap, deterministic gates: a document-level agronomy
-lexicon gate, explicit-caption extraction with a caption lexicon check, basic image appearance
-rules, and exact-image deduplication. These are deliberately conservative proxies, not semantic
-agricultural relevance filtering.
+The bounded experiment now includes cheap, deterministic gates: a broad agriculture text gate,
+document-level classification into mutually exclusive conventional and sustainable splits,
+optional caption extraction, simple image appearance rules, and exact-image deduplication. These
+are deliberately broad proxies, not semantic image understanding.
 
-Still out of scope are semantic crop/phenotyping classification, reliable satellite/diagram
-exclusion, OCR, page rendering for vector figures, semantic deduplication, licensing resolution,
-and broad multi-shard production scale. These remain product work beyond the lightweight POC.
+Still out of scope are reliable satellite/diagram exclusion, OCR, page rendering for vector
+figures, semantic deduplication, licensing resolution, and broad multi-shard production scale.
+These remain product work beyond the lightweight POC.
 
 ## Consequences
 

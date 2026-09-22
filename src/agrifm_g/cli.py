@@ -14,8 +14,12 @@ from agrifm_g.adapters.finepdf import (
     ParquetRowSource,
     RowSource,
 )
+from agrifm_g.adapters.lexicon import (
+    CONVENTIONAL_PATH,
+    SUSTAINABLE_PATH,
+    load_lexicon,
+)
 from agrifm_g.adapters.lexicon import DEFAULT_PATH as LEXICON_PATH
-from agrifm_g.adapters.lexicon import PHENOTYPE_PATH, load_lexicon
 from agrifm_g.adapters.packaging import package_dataset
 from agrifm_g.adapters.pdfsource import CachingPdfFetcher
 from agrifm_g.adapters.publish import publish_dataset
@@ -58,10 +62,16 @@ def _parser() -> argparse.ArgumentParser:
         help="documents retrieved at once",
     )
     build.add_argument(
-        "--caption-lexicon",
+        "--conventional-lexicon",
         type=Path,
-        default=PHENOTYPE_PATH,
-        help="keep only images whose caption holds one of these terms",
+        default=CONVENTIONAL_PATH,
+        help="category vocabulary for conventional agriculture documents",
+    )
+    build.add_argument(
+        "--sustainable-lexicon",
+        type=Path,
+        default=SUSTAINABLE_PATH,
+        help="category vocabulary for sustainable agriculture documents",
     )
     build.add_argument(
         "--min-text-score",
@@ -125,12 +135,14 @@ def _run_build(args: argparse.Namespace) -> int:
         args.out,
         terms=terms,
         threshold=args.min_text_score,
-        caption_terms=load_lexicon(args.caption_lexicon),
+        conventional_terms=load_lexicon(args.conventional_lexicon),
+        sustainable_terms=load_lexicon(args.sustainable_lexicon),
         workers=args.workers,
     )
     images = sum(record.n_images for record in outcome.records)
     print(
         f"text gate skipped {outcome.gated_out}/{outcome.sampled} documents before fetching; "
+        f"category gate skipped {outcome.ambiguous_out} ambiguous documents; "
         f"built {len(outcome.records)} documents and {images} images in {args.out}"
     )
     return 0

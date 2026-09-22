@@ -20,7 +20,11 @@ class FixtureCorpus:
 
     def rows(self, indices: Sequence[int]) -> list[FinePdfRow]:
         return [
-            FinePdfRow(doc_id=f"<urn:uuid:{i}>", url=f"https://example.org/{i}.pdf", text=f"t{i}")
+            FinePdfRow(
+                doc_id=f"<urn:uuid:{i}>",
+                url=f"https://example.org/{i}.pdf",
+                text=f"tractor silo field operation {i}",
+            )
             for i in indices
         ]
 
@@ -33,7 +37,15 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as directory:
         out = Path(directory)
         manifest = build_manifest(corpus, size=3, seed=1)
-        records = build_dataset(manifest, corpus, corpus, out)
+        records = build_dataset(
+            manifest,
+            corpus,
+            corpus,
+            out,
+            terms={"tractor", "silo"},
+            conventional_terms={"tractor", "silo"},
+            sustainable_terms={"permaculture"},
+        )
         problems = verify_records(read_records(out), existing_files(out))
         images = sum(record.n_images for record in records)
         print(f"smoke: {len(records)} documents, {images} images, {len(problems)} problems")

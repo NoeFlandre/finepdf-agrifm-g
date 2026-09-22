@@ -2,6 +2,7 @@ import hashlib
 import io
 import json
 
+import pytest
 from PIL import Image
 
 from agrifm_g.adapters.extraction import ExtractedImage
@@ -70,6 +71,28 @@ def test_packaging_writes_parquet_stats_and_a_card(tmp_path):
     assert not list((out / "data").glob("train-*.parquet"))
     assert json.loads((out / "stats.json").read_text())["documents"]["sampled"] == 10
     assert "me/x" in (out / "README.md").read_text()
+
+
+def test_packaging_rejects_records_without_an_agriculture_split(tmp_path):
+    payload = DocumentPayload(
+        raw_doc_id="missing-split",
+        source_url="https://example.org/missing.pdf",
+        text="agriculture",
+        pdf_bytes=b"%PDF-1.4 fake",
+        images=(an_image(0, 1),),
+    )
+    build = tmp_path / "build"
+    records = write_dataset(build, [payload])
+
+    with pytest.raises(ValueError, match="agriculture split"):
+        package_dataset(
+            build,
+            tmp_path / "publish",
+            repo_id="me/x",
+            records=records,
+            sampled=1,
+            seed=3,
+        )
 
 
 def test_the_published_rows_load_back_with_decoded_images(tmp_path):

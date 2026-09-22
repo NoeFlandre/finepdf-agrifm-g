@@ -20,7 +20,7 @@ from agrifm_g.adapters.finepdf import ParquetRowSource
 from agrifm_g.domain.sampling import select_indices
 from agrifm_g.pipeline import Manifest
 
-LEXICON = Path("data/agronomy_lexicon.txt")
+LEXICON = Path("data/agriculture_lexicon.txt")
 SEED = 20260918
 UNIFORM_SIZE = 150
 CANDIDATE_SIZE = 350

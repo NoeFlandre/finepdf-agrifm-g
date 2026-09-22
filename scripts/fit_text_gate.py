@@ -13,7 +13,7 @@ from pathlib import Path
 from agrifm_g.domain.textgate import agronomy_score
 
 LABELS = Path("data/labels/relevance_v1.jsonl")
-LEXICON = Path("data/agronomy_lexicon.txt")
+LEXICON = Path("data/agriculture_lexicon.txt")
 THRESHOLDS = (0.0, 0.001, 0.002, 0.003, 0.004, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.03)
 
 

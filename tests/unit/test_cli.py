@@ -68,6 +68,16 @@ def test_help_lists_every_command(capsys):
     assert {"sample", "build", "package", "verify", "publish"} <= set(out.split())
 
 
+def test_build_help_exposes_two_category_lexicons_without_caption_filter(capsys):
+    with pytest.raises(SystemExit):
+        main(["build", "--help"])
+
+    out = capsys.readouterr().out
+    assert "--conventional-lexicon" in out
+    assert "--sustainable-lexicon" in out
+    assert "--caption-lexicon" not in out
+
+
 def test_sample_writes_a_manifest(tmp_path, monkeypatch):
     from agrifm_g import cli
     from agrifm_g.adapters.finepdf import FinePdfRow
@@ -96,7 +106,11 @@ def test_build_writes_a_dataset_from_a_manifest(tmp_path, monkeypatch, fixtures)
 
         def rows(self, indices):
             return [
-                FinePdfRow(doc_id=f"d{i}", url=f"https://example.org/{i}.pdf", text="t")
+                FinePdfRow(
+                    doc_id=f"d{i}",
+                    url=f"https://example.org/{i}.pdf",
+                    text="tractor silo field operation",
+                )
                 for i in indices
             ]
 
@@ -109,7 +123,7 @@ def test_build_writes_a_dataset_from_a_manifest(tmp_path, monkeypatch, fixtures)
     manifest.write_text(build_manifest(FakeSource(), size=2, seed=1).to_json())
     out = tmp_path / "out"
     argv = ["build", "--manifest", str(manifest), "--out", str(out), "--cache", str(tmp_path / "c")]
-    # the rows carry no agronomy vocabulary, so the gate is off for this check
+    # the rows are conventional agriculture documents and the text gate is off for this check
     assert main([*argv, "--min-text-score", "0"]) == 0
     assert len(read_records_from(out)) == 2
 
@@ -187,8 +201,9 @@ def test_package_writes_parquet_and_a_card(tmp_path, fixtures):
             DocumentPayload(
                 raw_doc_id="doc-1",
                 source_url="https://example.org/a.pdf",
-                text="hello",
+                text="tractor silo field operation",
                 pdf_bytes=(fixtures / "one_image.pdf").read_bytes(),
+                agriculture_split="conventional",
                 # Keep this packaging test independent of the appearance gate's fixture image.
                 images=(replace(image, edge_density=0.18),),
             )
@@ -215,5 +230,5 @@ def test_package_writes_parquet_and_a_card(tmp_path, fixtures):
         ]
     )
     assert code == 0
-    assert list((out / "data").glob("train-*.parquet"))
+    assert list((out / "data").glob("conventional-*.parquet"))
     assert (out / "README.md").exists()

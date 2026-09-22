@@ -67,7 +67,7 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             "- Cheap sanity filters remove invalid, tiny, single-colour, nearly blank,"
             " overwhelmingly flat-colour, extreme-aspect-ratio, and duplicate images."
             " Colour counts and edge density"
-            " remain diagnostic fields, not restrictive phenotype rules.",
+            " remain diagnostic fields, not semantic filters.",
             "",
             "## Reproduce and limitations",
             "",
