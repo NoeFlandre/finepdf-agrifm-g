@@ -23,7 +23,9 @@ class DropReason(StrEnum):
     FEW_COLOURS = "few_colours"
     MOSTLY_BLANK = "mostly_blank"
     FLAT_BACKGROUND = "flat_background"
+    FLAT_GREYSCALE = "flat_greyscale"
     LINE_ART = "line_art"
+    LOW_TEXTURE = "low_texture"
 
 
 def keep_reason(image: ImageRef) -> DropReason | None:
@@ -43,6 +45,7 @@ def _metrics(image: ImageRef) -> ImageMetrics:
         dominant_colour_share=image.dominant_colour_share,
         near_white_share=image.near_white_share,
         edge_density=image.edge_density,
+        greyscale=image.greyscale,
     )
 
 

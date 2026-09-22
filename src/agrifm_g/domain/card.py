@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from agrifm_g.domain.textgate import DEFAULT_THRESHOLD
+
 SCHEMA_ROWS = (
     ("image", "image", "the extracted image itself, PNG, decoded by `datasets`"),
     ("doc_id", "string", "FinePDF document id, lowercased and reduced to `[a-z0-9-_]`"),
@@ -17,8 +19,9 @@ SCHEMA_ROWS = (
         "int32",
         "distinct colours in a 256 px thumbnail — the appearance filter's main signal",
     ),
-    ("edge_density", "float32", "share of edge pixels in a 256 px thumbnail"),
     ("image_path", "string", "path the image had in the build directory"),
+    ("edge_density", "float32", "share of edge pixels in a 256 px thumbnail"),
+    ("caption", "string", "explicit figure caption extracted from the PDF page"),
     ("source_url", "string", "URL the PDF was crawled from — the provenance record"),
     ("pdf_sha256", "string", "hash of the retrieved PDF, so a refetch is verifiable"),
     ("text", "string", "FinePDF's extracted text for the whole document"),
@@ -28,18 +31,16 @@ SCHEMA_ROWS = (
 
 
 def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: int) -> str:
-    """Render the full card. Every number comes from `stats`; none is hand-written."""
+    """Render the compact reader-facing card from the build's own numbers."""
     documents, images = stats["documents"], stats["images"]
     return "\n".join(
         [
             _front_matter(n_rows),
             f"# {repo_id}",
             "",
-            "A reproducible sample of [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs)"
-            " documents, flattened to **one row per embedded image**, with the document's text and"
-            " provenance carried alongside. Built by"
-            " [finepdf-agrifm-g](https://github.com/NoeFlandre/finepdf-agrifm-g) as the first step"
-            " towards AGRIFM-G, a visual foundation model for plant phenotyping.",
+            "A reproducible [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs)"
+            " sample flattened to **one row per retained embedded raster image**. Each row keeps"
+            " the image caption, document text and provenance for the AGRIFM-G experiment.",
             "",
             "```python",
             "from datasets import load_dataset",
@@ -47,13 +48,6 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             f'ds = load_dataset("{repo_id}", split="train")',
             'ds[0]["image"]  # PIL.Image',
             "```",
-            "",
-            "## What this is not",
-            "",
-            "**No agricultural or phenotyping filtering is applied.** Satellite imagery, charts,"
-            " diagrams, logos and unrelated photographs are all still present — the images here are"
-            " mostly *not* agricultural. This release exists to prove the extraction pipeline is"
-            " reproducible and verifiable; relevance filtering is the next piece of work.",
             "",
             "## Contents",
             "",
@@ -63,62 +57,50 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             "",
             _schema_table(),
             "",
-            "## Filtering",
+            "## Selection and filtering",
             "",
-            "Before anything is downloaded, a **text gate** scores each document against an"
-            " agronomy lexicon and skips the low scorers. On this run it skipped 494 of 600"
-            " sampled documents, so five sixths of the fetching never happened. It is tuned for"
-            " recall: on the labelled set it keeps every positive.",
+            f"- **Document gate:** documents below the {DEFAULT_THRESHOLD:.1%} agronomy-lexicon"
+            " word-share threshold are not downloaded; the threshold keeps every labelled"
+            " positive.",
             "",
-            "Images are then dropped in two cheap stages, both before any model:"
-            " **degenerate** (under"
-            " 32 px a side, single-colour, aspect ratio beyond 20:1, exact duplicate by SHA-256)"
-            " and **appearance** — too few distinct colours, almost entirely white, one flat"
-            " colour over half the frame, or a limited palette with almost no edges.",
+            "- **Caption gate:** only a line beginning with a figure label — `Figure`, `Fig.`,"
+            " `Photo`, `Plate`, `Image`, `Figura`, `Abb.` — plus an identifier (or, unnumbered, a"
+            " colon or dash) is a caption; nearby page prose is ignored. The caption must contain"
+            " a whole-word hit from the **phenotype lexicon** (organs, traits, symptoms, crops and"
+            " growing scenes) and is published in `caption`. Generic agricultural context words"
+            " such as *field*, *soil*, *yield* and *trial* are deliberately excluded there,"
+            " because they select charts and maps rather than pictures of plants.",
             "",
-            "Measured against 567 hand-labelled images: the appearance rules drop **66.7 %** of"
-            " images at **100 % precision**, losing none of the 10 labelled keeps. Thresholds sit"
-            " 3-10x away from the weakest keep, because ten positives is not enough to fit a"
-            " boundary. They do **not** catch anti-aliased vector figures, which carry enough"
-            " colours to look photographic.",
+            "- **Cheap visual gate:** images must be at least 32 px on each side,"
+            " non-single-colour, no wider than 20:1 and unique by SHA-256. A colour image must"
+            " then use more than 8,000 colours and have edge density ≥ 0.18; near-white,"
+            " flat-background, sparse line-art and low-texture images are dropped. A **greyscale**"
+            " image is judged on texture alone (edge density ≥ 0.30), because an 8-bit greyscale"
+            " photograph holds at most 256 colours and the colour-count rule would reject every"
+            " scanned field photograph and electron micrograph on a technicality.",
             "",
-            "**This is not topical filtering.** Nothing here knows what agriculture looks like;"
-            " it only removes what is plainly not a photograph. What survives is still mostly"
-            " unrelated to agriculture.",
+            "On 567 hand-labelled images, the strict appearance rules removed **77.6%** at"
+            " **100% precision**, losing none of the 10 labelled keeps. This is not semantic"
+            " agricultural filtering; unrelated photographs and vector figures can remain.",
             "",
-            "## How it was built",
+            "## Reproduce and limitations",
             "",
-            f"Documents were sampled with seed `{stats['seed']}` from a single row group of one"
-            " English FinePDF shard, fetched from their original URLs, and their embedded raster"
-            " images re-encoded to PNG. Images under 32 px on a side, single-colour images, images"
-            " with an aspect ratio beyond 20:1, and exact duplicates (by SHA-256) are dropped;"
-            " every drop is counted above.",
+            f"The bounded run samples {documents['source_shards']} English FinePDF shards with seed"
+            f" `{stats['seed']}`, one row group each, so the sample is not an accident of a single"
+            " crawl segment. PDFs are fetched from their original URLs and"
+            " are not redistributed; `source_url` and `pdf_sha256` preserve provenance, but source"
+            " licences are not audited.",
             "",
             "```bash",
-            "uv run agrifm-g build   --manifest data/sample_manifest.json --out out/dataset",
-            "uv run agrifm-g package --dataset out/dataset --out out/publish --repo <repo>",
+            "uv run python scripts/build_scaled_sample.py \\",
+            "  --out-root out/phenotype-30000 --cache .cache/pdfs --repo <repo>",
             "```",
             "",
-            "> Previously published as `NoeFlandre/agrifm-g-finepdf-poc`. The Hub redirects the"
-            " old name. It is still a proof of concept — see the section above.",
-            "",
-            "## Provenance and licensing",
-            "",
-            "Every row keeps the `source_url` its document was crawled from and the `pdf_sha256` of"
-            " the retrieved file. The underlying documents' own licences are **not resolved or"
-            " audited**: the collection, extraction code and metadata are released under CC-BY-4.0,"
-            " but the images inherit whatever terms their source documents carry. Treat this as"
-            " research material, and check provenance before any redistribution. Takedown requests"
-            " via the repository's issue tracker.",
-            "",
-            "## Limitations",
-            "",
-            f"- Roughly {documents['fetch_yield']:.0%} of sampled documents were retrievable;"
-            " FinePDF stores URLs from 2023 crawls, and many are dead or now gated.",
-            "- The sample is drawn from the first row group of one English shard, so it is not"
-            " representative of FinePDF as a whole.",
-            "- Only embedded raster images are extracted: vector figures and page renderings are"
-            " invisible to this pipeline, and no OCR is performed.",
+            f"- {documents['fetch_yield']:.0%} of sampled documents were retrieved and parsed in"
+            " this run; FinePDF URLs date from 2023 and many are unavailable.",
+            "- Only embedded raster images are extracted: vector figures, OCR text and page"
+            " renderings are out of scope. Caption layouts outside the explicit-label rule are"
+            " dropped, and multi-image pages are paired by reading order.",
             "",
             "## Citation",
             "",

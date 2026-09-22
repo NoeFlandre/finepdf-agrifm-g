@@ -114,3 +114,32 @@ def test_the_outcome_reports_what_was_sampled(tmp_path, fixtures):
         threshold=0.05,
     )
     assert outcome.sampled == 2
+
+
+def test_concurrent_retrieval_preserves_manifest_order(tmp_path, fixtures):
+    """Threads overlap the waiting; they must not reorder the build."""
+    manifest = build_manifest(FakeRowSource(rows(8)), size=8, seed=5)
+    fetcher = FakeFetcher((fixtures / "one_image.pdf").read_bytes())
+
+    records = build_dataset(manifest, FakeRowSource(rows(8)), fetcher, tmp_path, workers=4)
+
+    assert [record.doc_id for record in records] == sorted(record.doc_id for record in records)
+    assert sorted(fetcher.calls) == sorted(manifest_urls(manifest))
+
+
+def manifest_urls(manifest):
+    return [f"https://example.org/{index}.pdf" for index in manifest.indices]
+
+
+def test_a_single_worker_still_builds_the_same_dataset(tmp_path, fixtures):
+    manifest = build_manifest(FakeRowSource(rows(4)), size=4, seed=5)
+    payload = (fixtures / "one_image.pdf").read_bytes()
+
+    serial = build_dataset(
+        manifest, FakeRowSource(rows(4)), FakeFetcher(payload), tmp_path / "serial", workers=1
+    )
+    threaded = build_dataset(
+        manifest, FakeRowSource(rows(4)), FakeFetcher(payload), tmp_path / "threaded", workers=8
+    )
+
+    assert [record.doc_id for record in serial] == [record.doc_id for record in threaded]

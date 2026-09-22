@@ -5,7 +5,7 @@ from agrifm_g.domain.stats import build_stats
 
 
 def a_card(**kwargs):
-    stats = build_stats([], sampled=10, dropped={}, seed=42)
+    stats = build_stats([], sampled=10, dropped={}, seed=42, source_shards=3)
     stats["documents"]["built"] = 4
     stats["documents"]["fetch_yield"] = 0.4
     return render_card(repo_id="me/thing", stats=stats, n_rows=12, n_shards=1, **kwargs)
@@ -24,10 +24,11 @@ def test_every_number_comes_from_the_build():
     assert "| documents sampled | 10 |" in card
     assert "40%" in card
     assert "seed `42`" in card
+    assert "samples 3 English FinePDF shards" in card
 
 
 def test_the_caveat_is_stated_plainly():
-    assert "No agricultural or phenotyping filtering is applied" in a_card()
+    assert "not semantic agricultural filtering" in a_card()
 
 
 def test_the_schema_table_lists_every_published_column():

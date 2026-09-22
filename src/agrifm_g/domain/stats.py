@@ -15,19 +15,21 @@ def build_stats(
     sampled: int,
     dropped: Mapping[DropReason, int],
     seed: int,
+    source_shards: int = 1,
 ) -> dict:
     """Aggregate a finished build. Pure, and deterministic for a given build."""
     return {
         "seed": seed,
         "extraction_version": EXTRACTION_VERSION,
-        "documents": _document_stats(records, sampled),
+        "documents": _document_stats(records, sampled, source_shards),
         "images": _image_stats(_all_images(records), dropped),
     }
 
 
-def _document_stats(records: Sequence[DocumentRecord], sampled: int) -> dict:
+def _document_stats(records: Sequence[DocumentRecord], sampled: int, source_shards: int) -> dict:
     return {
         "sampled": sampled,
+        "source_shards": source_shards,
         "built": len(records),
         "fetch_yield": _ratio(len(records), sampled),
         "with_images": _count_with_images(records),

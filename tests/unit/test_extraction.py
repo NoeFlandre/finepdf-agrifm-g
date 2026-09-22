@@ -1,4 +1,5 @@
 import pytest
+from PIL import Image
 
 from agrifm_g.adapters.extraction import extract_images
 
@@ -57,3 +58,23 @@ def test_a_missing_crypto_backend_becomes_an_extraction_error(fixtures, monkeypa
     monkeypatch.setattr(extraction, "PdfReader", explode)
     with pytest.raises(extraction.ExtractionError):
         extract_images((fixtures / "one_image.pdf").read_bytes())
+
+
+def test_caption_filter_uses_an_explicit_caption_not_nearby_page_text(monkeypatch):
+    import agrifm_g.adapters.extraction as extraction
+
+    class Page:
+        images = [type("ImageItem", (), {"image": Image.new("RGB", (200, 150), "green")})()]
+
+        def extract_text(self):
+            return "The wheat trial is discussed here.\nFigure 1. Wheat leaf canopy."
+
+    class Reader:
+        pages = [Page()]
+
+    monkeypatch.setattr(extraction, "PdfReader", lambda _: Reader())
+
+    accepted = extract_images(b"pdf", caption_terms={"wheat"})
+    assert len(accepted) == 1
+    assert accepted[0].caption == "Figure 1. Wheat leaf canopy."
+    assert extract_images(b"pdf", caption_terms={"maize"}) == ()

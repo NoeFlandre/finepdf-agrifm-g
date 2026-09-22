@@ -32,11 +32,16 @@ Allowed dependency direction, checked by `import-linter` and by a test:
 cli → pipeline → adapters → domain
 ```
 
-## Out of scope for the POC
+## Current scope and remaining boundary
 
-No agricultural or phenotyping relevance filtering, no satellite/diagram exclusion,
-no deduplication, no OCR, no image quality scoring, no scale. These are the actual
-product goals; the POC exists to make them cheap to attempt, not to pre-empt them.
+The bounded experiment now includes cheap, deterministic gates: a document-level agronomy
+lexicon gate, explicit-caption extraction with a caption lexicon check, basic image appearance
+rules, and exact-image deduplication. These are deliberately conservative proxies, not semantic
+agricultural relevance filtering.
+
+Still out of scope are semantic crop/phenotyping classification, reliable satellite/diagram
+exclusion, OCR, page rendering for vector figures, semantic deduplication, licensing resolution,
+and broad multi-shard production scale. These remain product work beyond the lightweight POC.
 
 ## Consequences
 

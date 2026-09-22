@@ -1,7 +1,7 @@
 """Run mutation testing on the domain and enforce a mutation-score floor.
 
-Nine mutants are known to survive; all of them only rewrite exception messages or
-replace `ensure_ascii=False` with an equally falsy value. See docs/known-limitations.md.
+Known survivors are reviewed as equivalent or low-value cases; see
+docs/known-limitations.md.
 """
 
 from __future__ import annotations

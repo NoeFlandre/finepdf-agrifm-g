@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import io
-from dataclasses import dataclass
+from collections.abc import Collection
+from dataclasses import dataclass, replace
 from typing import Any
 
 from pypdf import PageObject, PdfReader
@@ -12,7 +13,9 @@ from pypdf._page import ImageFile
 from pypdf.errors import DependencyError, PyPdfError
 
 from agrifm_g.adapters.appearance import measure
+from agrifm_g.domain.captions import captions_for_images, extract_caption_blocks
 from agrifm_g.domain.normalisation import is_usable_image
+from agrifm_g.domain.textgate import contains_lexicon_word
 
 
 class ExtractionError(RuntimeError):
@@ -38,25 +41,62 @@ class ExtractedImage:
     dominant_colour_share: float
     near_white_share: float
     edge_density: float
+    greyscale: bool = False
+    caption: str = ""
 
 
-def extract_images(pdf_bytes: bytes) -> tuple[ExtractedImage, ...]:
-    """Return the usable images of a PDF, in page order. Never touches the disk."""
+def extract_images(
+    pdf_bytes: bytes, *, caption_terms: Collection[str] | None = None
+) -> tuple[ExtractedImage, ...]:
+    """Return usable PDF images, optionally requiring a caption lexicon hit."""
     try:
         reader = PdfReader(io.BytesIO(pdf_bytes))
         pages = list(reader.pages)
     except (PyPdfError, DependencyError, ValueError, OSError) as error:
         raise ExtractionError(f"unreadable PDF: {error}") from error
     return tuple(
-        image for page_number, page in enumerate(pages) for image in _page_images(page_number, page)
+        image
+        for page_number, page in enumerate(pages)
+        for image in _page_images(page_number, page, caption_terms=caption_terms)
     )
 
 
-def _page_images(page_number: int, page: PageObject) -> list[ExtractedImage]:
+def _page_images(
+    page_number: int,
+    page: PageObject,
+    *,
+    caption_terms: Collection[str] | None,
+) -> list[ExtractedImage]:
     try:
         embedded = list(page.images)
     except Exception:  # noqa: BLE001 - a broken page must not sink the document
         return []
+    candidates = _extract_page_images(page_number, embedded)
+    captions = captions_for_images(extract_caption_blocks(_page_text(page)), len(candidates))
+    return _captioned_images(candidates, captions, caption_terms)
+
+
+def _page_text(page: PageObject) -> str:
+    try:
+        return page.extract_text() or ""
+    except Exception:  # noqa: BLE001 - caption extraction must not sink a document
+        return ""
+
+
+def _captioned_images(
+    candidates: list[ExtractedImage],
+    captions: tuple[str, ...],
+    caption_terms: Collection[str] | None,
+) -> list[ExtractedImage]:
+    extracted = []
+    for image, caption in zip(candidates, captions, strict=True):
+        if caption_terms is not None and not contains_lexicon_word(caption, caption_terms):
+            continue
+        extracted.append(replace(image, caption=caption))
+    return extracted
+
+
+def _extract_page_images(page_number: int, embedded: list[ImageFile]) -> list[ExtractedImage]:
     extracted = []
     for item in embedded:
         encoded = _as_png(item)
@@ -77,6 +117,7 @@ def _page_images(page_number: int, page: PageObject) -> list[ExtractedImage]:
                     dominant_colour_share=metrics.dominant_colour_share,
                     near_white_share=metrics.near_white_share,
                     edge_density=metrics.edge_density,
+                    greyscale=metrics.greyscale,
                 )
             )
     return extracted

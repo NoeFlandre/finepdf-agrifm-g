@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import httpx
 import pytest
 
@@ -71,3 +73,56 @@ def test_an_oversized_document_is_rejected(tmp_path, get):
     fake_get.response = FakeResponse(content=b"x" * 100)
     with pytest.raises(FetchError):
         CachingPdfFetcher(cache_dir=tmp_path, max_bytes=10).fetch("https://example.org/big.pdf")
+
+
+def test_the_cache_entry_appears_atomically(tmp_path, monkeypatch):
+    """A partly written PDF must never be visible to a concurrent reader."""
+    fetcher = CachingPdfFetcher(cache_dir=tmp_path)
+    seen: list[list[str]] = []
+
+    real_replace = Path.replace
+
+    def spy(self, target):
+        seen.append(sorted(p.suffix for p in tmp_path.iterdir()))
+        return real_replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", spy)
+    monkeypatch.setattr(httpx, "get", lambda url, **kwargs: FakeResponse(b"%PDF-1.4 body"))
+
+    assert fetcher.fetch("https://example.org/a.pdf") == b"%PDF-1.4 body"
+    assert seen == [[".part"]], "the final name must not exist before the rename"
+    assert [p.suffix for p in tmp_path.iterdir()] == [".pdf"]
+
+
+def test_a_dead_url_is_not_retried_on_a_later_run(tmp_path, get):
+    """96% of FinePDF URLs are dead; re-timing-out on them is what makes rebuilds cost hours."""
+    fake_get, calls = get
+    fake_get.response = FakeResponse(error=httpx.HTTPError("410 gone"))
+    fetcher = CachingPdfFetcher(cache_dir=tmp_path)
+
+    with pytest.raises(FetchError):
+        fetcher.fetch("https://example.org/dead.pdf")
+    with pytest.raises(FetchError, match="earlier run"):
+        fetcher.fetch("https://example.org/dead.pdf")
+
+    assert calls == ["https://example.org/dead.pdf"], "the dead URL was fetched twice"
+
+
+def test_remembering_failures_can_be_turned_off(tmp_path, get):
+    fake_get, calls = get
+    fake_get.response = FakeResponse(error=httpx.HTTPError("timeout"))
+    fetcher = CachingPdfFetcher(cache_dir=tmp_path, remember_failures=False)
+
+    for _ in range(2):
+        with pytest.raises(FetchError):
+            fetcher.fetch("https://example.org/flaky.pdf")
+
+    assert len(calls) == 2
+
+
+def test_a_failure_marker_never_shadows_a_real_download(tmp_path, get):
+    _, calls = get
+    fetcher = CachingPdfFetcher(cache_dir=tmp_path)
+
+    assert fetcher.fetch("https://example.org/ok.pdf") == b"%PDF-1.4 ok"
+    assert not list(tmp_path.glob("*.gone"))

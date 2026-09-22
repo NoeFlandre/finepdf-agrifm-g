@@ -1,7 +1,12 @@
 from hypothesis import given
 from hypothesis import strategies as st
 
-from agrifm_g.domain.textgate import agronomy_score, passes_gate
+from agrifm_g.domain.textgate import (
+    DEFAULT_THRESHOLD,
+    agronomy_score,
+    contains_lexicon_word,
+    passes_gate,
+)
 
 TERMS = frozenset({"wheat", "canopy", "harvest", "leaf"})
 
@@ -26,6 +31,12 @@ def test_matching_is_whole_word():
     assert agronomy_score("wheatgrass leafy", TERMS) == 0.0
 
 
+def test_caption_matching_is_whole_word():
+    assert contains_lexicon_word("Figure 1. Wheat canopy", TERMS)
+    assert not contains_lexicon_word("Figure 1. wheaten material", TERMS)
+    assert not contains_lexicon_word("Figure 1. unrelated image", TERMS)
+
+
 def test_an_empty_document_scores_zero():
     assert agronomy_score("", TERMS) == 0.0
     assert agronomy_score("12345 ...", TERMS) == 0.0
@@ -35,6 +46,10 @@ def test_the_gate_is_a_threshold():
     assert passes_gate(0.02, threshold=0.01)
     assert passes_gate(0.01, threshold=0.01)
     assert not passes_gate(0.009, threshold=0.01)
+
+
+def test_the_default_threshold_is_the_validated_conservative_bump():
+    assert DEFAULT_THRESHOLD == 0.005
 
 
 @given(st.text(max_size=300), st.integers(min_value=1, max_value=20))

@@ -15,14 +15,14 @@ from agrifm_g.adapters.finepdf import (
     RowSource,
 )
 from agrifm_g.adapters.lexicon import DEFAULT_PATH as LEXICON_PATH
-from agrifm_g.adapters.lexicon import load_lexicon
+from agrifm_g.adapters.lexicon import PHENOTYPE_PATH, load_lexicon
 from agrifm_g.adapters.packaging import package_dataset
 from agrifm_g.adapters.pdfsource import CachingPdfFetcher
 from agrifm_g.adapters.publish import publish_dataset
 from agrifm_g.adapters.storage import existing_files, file_hashes, read_records
 from agrifm_g.domain.textgate import DEFAULT_THRESHOLD
 from agrifm_g.domain.verification import verify_records
-from agrifm_g.pipeline import Manifest, build_manifest, build_with_outcome
+from agrifm_g.pipeline import DEFAULT_WORKERS, Manifest, build_manifest, build_with_outcome
 
 DEFAULT_MANIFEST = Path("data/sample_manifest.json")
 
@@ -51,6 +51,18 @@ def _parser() -> argparse.ArgumentParser:
     build.add_argument("--out", type=Path, default=Path("out/dataset"))
     build.add_argument("--cache", type=Path, default=Path(".cache/pdfs"))
     build.add_argument("--lexicon", type=Path, default=LEXICON_PATH)
+    build.add_argument(
+        "--workers",
+        type=int,
+        default=DEFAULT_WORKERS,
+        help="documents retrieved at once",
+    )
+    build.add_argument(
+        "--caption-lexicon",
+        type=Path,
+        default=PHENOTYPE_PATH,
+        help="keep only images whose caption holds one of these terms",
+    )
     build.add_argument(
         "--min-text-score",
         type=float,
@@ -113,6 +125,8 @@ def _run_build(args: argparse.Namespace) -> int:
         args.out,
         terms=terms,
         threshold=args.min_text_score,
+        caption_terms=load_lexicon(args.caption_lexicon),
+        workers=args.workers,
     )
     images = sum(record.n_images for record in outcome.records)
     print(

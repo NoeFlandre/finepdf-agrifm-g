@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Collection
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -21,6 +22,14 @@ from agrifm_g.adapters.storage import DocumentPayload, write_dataset
 from agrifm_g.domain.records import DocumentRecord
 from agrifm_g.domain.sampling import select_indices
 from agrifm_g.domain.textgate import DEFAULT_THRESHOLD, agronomy_score, passes_gate
+
+DEFAULT_WORKERS = 16
+"""How many documents to retrieve at once.
+
+Retrieval is almost entirely waiting on hosts that mostly no longer answer, so the build is
+bound by timeouts rather than by work. Threads overlap that waiting; results are still
+collected in manifest order, so a build stays reproducible.
+"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -106,10 +115,19 @@ def build_dataset(
     *,
     terms: Collection[str] = (),
     threshold: float = DEFAULT_THRESHOLD,
+    caption_terms: Collection[str] | None = None,
+    workers: int = DEFAULT_WORKERS,
 ) -> list[DocumentRecord]:
     """Materialise the manifest into a dataset directory, skipping unusable documents."""
     return build_with_outcome(
-        manifest, source, fetcher, out_dir, terms=terms, threshold=threshold
+        manifest,
+        source,
+        fetcher,
+        out_dir,
+        terms=terms,
+        threshold=threshold,
+        caption_terms=caption_terms,
+        workers=workers,
     ).records
 
 
@@ -121,6 +139,8 @@ def build_with_outcome(
     *,
     terms: Collection[str] = (),
     threshold: float = DEFAULT_THRESHOLD,
+    caption_terms: Collection[str] | None = None,
+    workers: int = DEFAULT_WORKERS,
 ) -> BuildOutcome:
     """As `build_dataset`, but also reports how many documents the text gate skipped.
 
@@ -129,12 +149,32 @@ def build_with_outcome(
     """
     rows = source.rows(manifest.indices)
     wanted = [row for row in rows if _worth_fetching(row, terms, threshold)]
-    payloads = [payload for row in wanted if (payload := _payload_for(row, fetcher)) is not None]
+    payloads = [
+        payload
+        for payload in _payloads(wanted, fetcher, caption_terms=caption_terms, workers=workers)
+        if payload is not None
+    ]
     return BuildOutcome(
         records=write_dataset(out_dir, payloads),
         sampled=len(rows),
         gated_out=len(rows) - len(wanted),
     )
+
+
+def _payloads(
+    rows: list[FinePdfRow],
+    fetcher: PdfFetcher,
+    *,
+    caption_terms: Collection[str] | None,
+    workers: int,
+) -> list[DocumentPayload | None]:
+    """Retrieve and extract in manifest order, overlapping the waiting when asked to."""
+    if workers <= 1 or not rows:
+        return [_payload_for(row, fetcher, caption_terms=caption_terms) for row in rows]
+    with ThreadPoolExecutor(max_workers=min(workers, len(rows))) as pool:
+        return list(
+            pool.map(lambda row: _payload_for(row, fetcher, caption_terms=caption_terms), rows)
+        )
 
 
 def _worth_fetching(row: FinePdfRow, terms: Collection[str], threshold: float) -> bool:
@@ -143,10 +183,15 @@ def _worth_fetching(row: FinePdfRow, terms: Collection[str], threshold: float) -
     return passes_gate(agronomy_score(row.text, terms), threshold=threshold)
 
 
-def _payload_for(row: FinePdfRow, fetcher: PdfFetcher) -> DocumentPayload | None:
+def _payload_for(
+    row: FinePdfRow,
+    fetcher: PdfFetcher,
+    *,
+    caption_terms: Collection[str] | None,
+) -> DocumentPayload | None:
     try:
         pdf_bytes = fetcher.fetch(row.url)
-        images = extract_images(pdf_bytes)
+        images = extract_images(pdf_bytes, caption_terms=caption_terms)
     except (FetchError, ExtractionError):
         return None
     return DocumentPayload(

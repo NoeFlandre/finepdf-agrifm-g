@@ -7,11 +7,12 @@ from agrifm_g.domain.records import DocumentRecord, ImageRef
 
 def image(path="images/d/000.png", sha="a" * 64, width=100, height=100, colours=30000, **extra):
     """A photographic image by default, so appearance rules do not fire unless asked."""
-    fields = {
+    fields: dict[str, float] = {
         "dominant_colour_share": 0.02,
         "near_white_share": 0.02,
         "edge_density": 0.25,
-    } | extra
+    }
+    fields.update(extra)
     return ImageRef(
         path=path,
         page=0,
@@ -20,7 +21,9 @@ def image(path="images/d/000.png", sha="a" * 64, width=100, height=100, colours=
         format="png",
         sha256=sha,
         n_colours=colours,
-        **fields,
+        dominant_colour_share=fields["dominant_colour_share"],
+        near_white_share=fields["near_white_share"],
+        edge_density=fields["edge_density"],
     )
 
 
@@ -104,3 +107,10 @@ def test_repeated_drops_of_the_same_reason_accumulate():
     )
     _, dropped = deduplicate([record("d1", images)])
     assert dropped[DropReason.SINGLE_COLOUR] == 3
+
+
+def test_every_appearance_rule_has_a_matching_drop_reason():
+    """`keep_reason` converts one enum into the other, so the two must stay in step."""
+    from agrifm_g.domain.appearance import AppearanceRule
+
+    assert {rule.value for rule in AppearanceRule} <= {reason.value for reason in DropReason}

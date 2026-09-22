@@ -58,6 +58,7 @@ include = ["src", "tests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q --strict-markers"
 markers = [
     "integration: touches the network; skipped unless AGRIFM_G_INTEGRATION=1",
@@ -113,4 +114,6 @@ pytest_add_cli_args_test_selection = [
     "tests/unit/test_rows.py",
     "tests/unit/test_card.py",
     "tests/unit/test_appearance.py",
+    "tests/unit/test_captions.py",
+    "tests/unit/test_textgate.py",
 ]

@@ -26,5 +26,6 @@ the manifest alone.
 - The sample is drawn from the first 1000 documents of one English shard, not from
   FinePDF as a whole. This is a real sampling bias, recorded in
   [known limitations](../known-limitations.md).
-- Widening the window later means reading more row groups — a parameter change, not a
+- Widening the window later means reading more row groups, or the same row group across
+  more shards — a parameter change, not a
   redesign.

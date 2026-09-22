@@ -32,6 +32,7 @@ def a_record(n_images: int = 2) -> DocumentRecord:
                 dominant_colour_share=0.02,
                 near_white_share=0.02,
                 edge_density=0.25,
+                caption=f"Figure {i + 1}. wheat leaf",
             )
             for i in range(n_images)
         ),
@@ -70,6 +71,7 @@ def test_duplicate_image_paths_are_rejected():
         dominant_colour_share=0.02,
         near_white_share=0.02,
         edge_density=0.25,
+        caption="Figure 1. wheat leaf",
     )
     with pytest.raises(ValueError):
         DocumentRecord(
@@ -106,6 +108,7 @@ def test_round_trip_is_identity_and_n_images_matches(doc_id, text, n_images):
                 dominant_colour_share=0.02,
                 near_white_share=0.02,
                 edge_density=0.25,
+                caption=f"Figure {i + 1}. wheat leaf",
             )
             for i in range(n_images)
         ),
@@ -120,8 +123,9 @@ def test_a_malformed_payload_is_rejected():
 
 
 GOLDEN = (
-    '{"doc_id": "doc-1", "extraction_version": 3, '
-    '"images": [{"dominant_colour_share": 0.02, "edge_density": 0.25, "format": "png", '
+    '{"doc_id": "doc-1", "extraction_version": 5, '
+    '"images": [{"caption": "Figure 1. wheat leaf", "dominant_colour_share": 0.02, '
+    '"edge_density": 0.25, "format": "png", "greyscale": false, '
     '"height": 120, "n_colours": 8, "near_white_share": 0.02, "page": 0, '
     '"path": "images/doc-1/000.png", "sha256": "' + "0" * 64 + '", "width": 100}], '
     '"n_images": 1, "pdf_path": "pdfs/doc-1.pdf", '

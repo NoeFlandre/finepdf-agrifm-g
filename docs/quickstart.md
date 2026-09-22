@@ -16,6 +16,26 @@ uv run agrifm-g verify --dataset out/dataset
 
 `verify` exits non-zero if any record references a file that is not on disk.
 
+## Build the bounded scaled experiment
+
+The cheap scaled run processes one row group from each of thirty FinePDF shards
+(30,000 documents), applies the validated
+0.5% text gate, keeps only explicitly captioned images whose captions contain a lexicon word,
+and applies the strict appearance rules:
+
+```bash
+uv run python scripts/build_scaled_sample.py \
+  --out-root out/phenotype-30000 --cache .cache/pdfs \
+  --repo NoeFlandre/finepdf-agrifm-g
+```
+
+It writes the working dataset to `out/phenotype-30000/dataset` and the publishable files to
+`out/phenotype-30000/publish`.
+
+If the run is interrupted after a row-group boundary, rerun the same command with
+`--resume`. Complete staged groups are checked for missing files and reused; only incomplete or
+not-yet-built groups are processed.
+
 ## Re-draw the sample
 
 ```bash

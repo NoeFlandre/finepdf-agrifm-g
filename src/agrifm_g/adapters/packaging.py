@@ -49,6 +49,7 @@ def features() -> Features:
             "image_path": Value("string"),
             "n_colours": Value("int32"),
             "edge_density": Value("float32"),
+            "caption": Value("string"),
             "source_url": Value("string"),
             "pdf_sha256": Value("string"),
             "text": Value("string"),
@@ -66,11 +67,14 @@ def package_dataset(
     records: Sequence[DocumentRecord],
     sampled: int,
     seed: int,
+    source_shards: int = 1,
 ) -> Package:
     """Deduplicate, flatten to rows, write parquet shards, stats and the card."""
     kept, dropped = deduplicate(records)
     rows = [_with_image_bytes(build_dir, row) for row in image_rows(kept)]
-    stats = build_stats(kept, sampled=sampled, dropped=dropped, seed=seed)
+    stats = build_stats(
+        kept, sampled=sampled, dropped=dropped, seed=seed, source_shards=source_shards
+    )
     n_shards = _write_parquet(out_dir, rows)
     (out_dir / STATS_FILE).write_text(f"{json.dumps(stats, indent=2, sort_keys=True)}\n")
     (out_dir / CARD_FILE).write_text(

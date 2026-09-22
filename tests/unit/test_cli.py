@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -179,6 +180,7 @@ def test_package_writes_parquet_and_a_card(tmp_path, fixtures):
     from agrifm_g.pipeline import Manifest
 
     build = tmp_path / "build"
+    image = extract_images((fixtures / "one_image.pdf").read_bytes())[0]
     write_dataset(
         build,
         [
@@ -187,7 +189,8 @@ def test_package_writes_parquet_and_a_card(tmp_path, fixtures):
                 source_url="https://example.org/a.pdf",
                 text="hello",
                 pdf_bytes=(fixtures / "one_image.pdf").read_bytes(),
-                images=extract_images((fixtures / "one_image.pdf").read_bytes()),
+                # Keep this packaging test independent of the appearance gate's fixture image.
+                images=(replace(image, edge_density=0.18),),
             )
         ],
     )
