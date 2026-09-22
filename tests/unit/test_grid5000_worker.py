@@ -1,8 +1,13 @@
 from pathlib import Path
 
 import pytest
+from scripts.grid5000.config import RunConfig
 from scripts.grid5000.receipt import make_receipt
-from scripts.grid5000.worker import require_oar_environment
+from scripts.grid5000.worker import (
+    build_output_root,
+    build_scaled_arguments,
+    require_oar_environment,
+)
 
 
 def test_worker_refuses_frontend_execution(monkeypatch):
@@ -21,6 +26,23 @@ def test_worker_requires_all_oar_markers():
                 "OAR_JOB_ID": "123",
             }
         )
+
+
+def test_worker_uses_the_agriculture_output_profile(tmp_path: Path):
+    config = RunConfig(commit="a" * 40, shards=(0,), row_groups=(0,))
+
+    output_root = build_output_root(tmp_path)
+    arguments = build_scaled_arguments(config, tmp_path)
+
+    assert output_root == tmp_path / "out" / "agriculture-30000"
+    assert str(output_root) in arguments
+    assert "phenotype" not in " ".join(arguments)
+
+
+def test_worker_publish_path_is_inside_the_agriculture_profile(tmp_path: Path):
+    assert build_output_root(tmp_path) / "publish" == (
+        tmp_path / "out" / "agriculture-30000" / "publish"
+    )
 
 
 def test_receipt_hashes_publish_files(tmp_path: Path):

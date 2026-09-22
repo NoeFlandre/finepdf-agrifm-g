@@ -218,6 +218,11 @@ def read_remote_json(site: str, remote_path: str) -> dict[str, Any]:
     return payload
 
 
+def publish_remote_path(remote_root: str) -> str:
+    """Return the exact publish directory for the agriculture-splits worker."""
+    return f"{remote_root}/out/agriculture-30000/publish/."
+
+
 def fetch_publish(site: str, remote_root: str, local_publish_dir: Path) -> dict[str, Any]:
     """Verify the remote receipt, then fetch and locally verify publish files."""
     from scripts.grid5000.receipt import verify_receipt
@@ -231,7 +236,7 @@ def fetch_publish(site: str, remote_root: str, local_publish_dir: Path) -> dict[
     if pending.exists():
         raise SubmissionError(f"local fetch is already incomplete: {pending}")
     pending.mkdir(parents=True, exist_ok=False)
-    remote_publish = f"{remote_root}/out/phenotype-30000/publish/."
+    remote_publish = publish_remote_path(remote_root)
     result = run_command(["scp", "-q", "-r", f"{site}:{remote_publish}", str(pending)])
     if result.returncode:
         raise SubmissionError(f"could not fetch publish files: {result.stderr.strip()}")

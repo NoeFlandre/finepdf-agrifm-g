@@ -10,6 +10,13 @@ from pathlib import Path
 from scripts.grid5000.config import RunConfig
 from scripts.grid5000.receipt import make_receipt, write_receipt_atomic
 
+OUTPUT_PROFILE = "agriculture-30000"
+
+
+def build_output_root(run_root: Path) -> Path:
+    """Return the immutable output root for the agriculture-splits pipeline."""
+    return run_root / "out" / OUTPUT_PROFILE
+
 
 def require_oar_environment(env: Mapping[str, str] | None = None) -> None:
     """Reject execution on a frontend or outside the reserved allocation."""
@@ -32,7 +39,7 @@ def load_config(spec_path: Path) -> RunConfig:
 
 def build_scaled_arguments(config: RunConfig, run_root: Path) -> list[str]:
     """Render arguments for the existing scaled build without duplicating its logic."""
-    output_root = run_root / "out" / "phenotype-30000"
+    output_root = build_output_root(run_root)
     arguments = [
         "--out-root",
         str(output_root),
@@ -68,7 +75,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     spec_path = args.spec.expanduser().resolve()
     config = load_config(spec_path)
     run_root = spec_path.parent
-    publish_dir = run_root / "out" / "phenotype-30000" / "publish"
+    publish_dir = build_output_root(run_root) / "publish"
     receipt_path = run_root / "receipt.json"
     job_id = os.environ["OAR_JOB_ID"]
     try:

@@ -27,6 +27,7 @@ DEFAULT_WORKERS = 16
 DEFAULT_CORES = 16
 DEFAULT_MEMORY_GB = 32
 DEFAULT_WALLTIME = "04:00:00"
+DEFAULT_PIPELINE = "agriculture-splits-v1"
 UV_VERSION = "0.11.16"
 
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
@@ -39,6 +40,7 @@ class RunConfig:
 
     commit: str
     repo: str = DEFAULT_REPO
+    pipeline: str = DEFAULT_PIPELINE
     seed: int = DEFAULT_SEED
     shards: tuple[int, ...] = DEFAULT_SHARDS
     row_groups: tuple[int, ...] = DEFAULT_ROW_GROUPS
@@ -52,6 +54,8 @@ class RunConfig:
 
     def __post_init__(self) -> None:
         _validate_identity(self.commit, self.repo, self.seed)
+        if not self.pipeline or "/" in self.pipeline or ".." in self.pipeline:
+            raise ValueError("pipeline must be a non-empty profile name")
         object.__setattr__(self, "shards", _positive_unique(self.shards, "shards"))
         object.__setattr__(self, "row_groups", _nonnegative_unique(self.row_groups, "row_groups"))
         _validate_resources(self.threshold, self.workers, self.cores, self.memory_gb, self.walltime)

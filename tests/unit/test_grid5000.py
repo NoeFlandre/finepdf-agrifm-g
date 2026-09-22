@@ -13,6 +13,7 @@ from scripts.grid5000.remote import (
     SubmissionError,
     parse_job_id,
     parse_policy_result,
+    publish_remote_path,
     refuse_duplicate_submission,
 )
 
@@ -37,6 +38,14 @@ def test_config_round_trips_as_sorted_json():
     payload = json.loads(config.to_json())
     assert payload["shards"] == [0, 2]
     assert payload["row_groups"] == [0, 1]
+    assert payload["pipeline"] == "agriculture-splits-v1"
+
+
+def test_pipeline_profile_changes_the_run_identity():
+    agriculture = RunConfig(commit="a" * 40, pipeline="agriculture-splits-v1")
+    other = RunConfig(commit="a" * 40, pipeline="other-profile")
+
+    assert agriculture.run_id != other.run_id
 
 
 def test_submission_command_requests_cpu_only_bounded_resources():
@@ -57,6 +66,10 @@ def test_worker_command_is_shell_quoted():
     assert shlex.quote("/home/u/run source/scripts/grid5000/worker.sh") in command
     assert "AGRIFM_G_GRID5000_JOB=1" in command
     assert "env" in command
+
+
+def test_remote_fetch_uses_the_agriculture_publish_path():
+    assert publish_remote_path("/home/test/run") == "/home/test/run/out/agriculture-30000/publish/."
 
 
 def test_policy_is_accepted_only_when_no_jobs_are_flagged():

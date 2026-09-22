@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pytest
+import scripts.build_scaled_sample as scaled
 from scripts.build_scaled_sample import (
     _prepare_group_dir,
     group_refs,
@@ -9,6 +10,7 @@ from scripts.build_scaled_sample import (
 )
 
 from agrifm_g.adapters.extraction import extract_images
+from agrifm_g.adapters.lexicon import AgricultureLexicons
 from agrifm_g.adapters.storage import DocumentPayload, read_records, write_dataset
 
 
@@ -44,6 +46,25 @@ def test_group_refs_spread_the_sample_across_shards():
     assert [ref.slug for ref in refs] == ["s00000g0", "s00000g1", "s00007g0", "s00007g1"]
     assert refs[-1].shard_name == "000_00007.parquet"
     assert refs[-1].source().row_group == 1
+
+
+def test_scaled_build_defaults_to_the_agriculture_output():
+    assert scaled._parse_args([]).out_root == Path("out/agriculture-30000")
+
+
+def test_scaled_build_loads_broad_and_category_lexicons(monkeypatch):
+    expected = AgricultureLexicons(
+        broad=frozenset({"agriculture"}),
+        conventional=frozenset({"tractor"}),
+        sustainable=frozenset({"permaculture"}),
+    )
+    monkeypatch.setattr(scaled, "load_agriculture_lexicons", lambda: expected)
+
+    terms, conventional, sustainable = scaled._build_lexicon_terms(threshold=0.005)
+
+    assert terms == frozenset({"agriculture", "tractor", "permaculture"})
+    assert conventional == expected.conventional
+    assert sustainable == expected.sustainable
 
 
 def test_scaled_build_requires_an_oar_job(monkeypatch):

@@ -10,11 +10,13 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
-from agrifm_g.adapters.finepdf import ParquetRowSource
-from agrifm_g.adapters.lexicon import load_lexicon, load_phenotype_lexicon
+from agrifm_g.adapters.finepdf import FinePdfRow, ParquetRowSource
+from agrifm_g.adapters.lexicon import AgricultureLexicons, load_agriculture_lexicons
 from agrifm_g.adapters.packaging import package_dataset
 from agrifm_g.adapters.pdfsource import CachingPdfFetcher
 from agrifm_g.adapters.storage import existing_files, read_records, record_to_json
+from agrifm_g.domain.agriculture import AgricultureSplit, classify_document
+from agrifm_g.domain.normalisation import safe_doc_id
 from agrifm_g.domain.records import DocumentRecord
 from agrifm_g.domain.textgate import DEFAULT_THRESHOLD, agronomy_score, passes_gate
 from agrifm_g.pipeline import DEFAULT_WORKERS, Manifest, build_with_outcome
@@ -23,6 +25,7 @@ DEFAULT_REPO = "NoeFlandre/finepdf-agrifm-g"
 DEFAULT_SHARDS = tuple(range(30))
 DEFAULT_ROW_GROUPS = (0,)
 DEFAULT_SEED = 20260918
+OUTPUT_PROFILE = "agriculture-30000"
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +56,15 @@ def group_refs(shards: Sequence[int], row_groups: Sequence[int]) -> tuple[GroupR
     return tuple(
         GroupRef(shard=shard, row_group=row_group) for shard in shards for row_group in row_groups
     )
+
+
+def _build_lexicon_terms(
+    *, threshold: float
+) -> tuple[frozenset[str], frozenset[str], frozenset[str]]:
+    """Load the broad and both category lexicons used by every staged group."""
+    lexicons: AgricultureLexicons = load_agriculture_lexicons()
+    terms = lexicons.prefetch_terms if threshold > 0 else frozenset()
+    return terms, lexicons.conventional, lexicons.sustainable
 
 
 def merge_builds(group_dirs: Sequence[Path], out_dir: Path) -> list[DocumentRecord]:
@@ -90,11 +102,12 @@ def _build_group(
     out_dir: Path,
     cache_dir: Path,
     terms: frozenset[str],
-    caption_terms: frozenset[str],
+    conventional_terms: frozenset[str],
+    sustainable_terms: frozenset[str],
     threshold: float,
     seed: int,
     workers: int,
-) -> tuple[int, int, int, int]:
+) -> tuple[int, int, int, int, int]:
     source = group.source()
     indices = tuple(range(source.total()))
     rows = source.rows(indices)
@@ -114,16 +127,29 @@ def _build_group(
         out_dir,
         terms=terms,
         threshold=threshold,
-        caption_terms=caption_terms,
+        conventional_terms=conventional_terms,
+        sustainable_terms=sustainable_terms,
         workers=workers,
     )
     images = sum(record.n_images for record in outcome.records)
-    return outcome.sampled, outcome.gated_out, len(outcome.records), images
+    return (
+        outcome.sampled,
+        outcome.gated_out,
+        outcome.ambiguous_out,
+        len(outcome.records),
+        images,
+    )
 
 
 def _reuse_group(
-    *, group: GroupRef, out_dir: Path, terms: frozenset[str], threshold: float
-) -> tuple[int, int, int, int]:
+    *,
+    group: GroupRef,
+    out_dir: Path,
+    terms: frozenset[str],
+    conventional_terms: frozenset[str],
+    sustainable_terms: frozenset[str],
+    threshold: float,
+) -> tuple[int, int, int, int, int]:
     """Recover counts for a completed staged group after an interrupted run."""
     records = read_records(out_dir)
     expected = {
@@ -136,17 +162,69 @@ def _reuse_group(
         raise ValueError(f"staged group {group.slug} is missing files: {sorted(missing)[:3]}")
     source = group.source()
     rows = source.rows(tuple(range(source.total())))
-    gated_out = sum(
-        1
-        for row in rows
-        if terms and not passes_gate(agronomy_score(row.text, terms), threshold=threshold)
+    gated_out, ambiguous_out, expected_splits = _decision_counts(
+        rows,
+        terms=terms,
+        conventional_terms=conventional_terms,
+        sustainable_terms=sustainable_terms,
+        threshold=threshold,
     )
-    return len(rows), gated_out, len(records), sum(record.n_images for record in records)
+    _validate_reused_records(records, expected_splits, group.slug)
+    return (
+        len(rows),
+        gated_out,
+        ambiguous_out,
+        len(records),
+        sum(record.n_images for record in records),
+    )
+
+
+def _decision_counts(
+    rows: Sequence[FinePdfRow],
+    *,
+    terms: frozenset[str],
+    conventional_terms: frozenset[str],
+    sustainable_terms: frozenset[str],
+    threshold: float,
+) -> tuple[int, int, dict[str, AgricultureSplit]]:
+    gated_out = 0
+    ambiguous_out = 0
+    expected_splits: dict[str, AgricultureSplit] = {}
+    for row in rows:
+        if terms and not passes_gate(agronomy_score(row.text, terms), threshold=threshold):
+            gated_out += 1
+            continue
+        split = classify_document(row.text, conventional_terms, sustainable_terms)
+        if split is None:
+            ambiguous_out += 1
+            continue
+        expected_splits[safe_doc_id(row.doc_id)] = split
+    return gated_out, ambiguous_out, expected_splits
+
+
+def _validate_reused_records(
+    records: Sequence[DocumentRecord],
+    expected_splits: dict[str, AgricultureSplit],
+    group_slug: str,
+) -> None:
+    valid_splits = {split.value for split in AgricultureSplit}
+    for record in records:
+        if record.agriculture_split not in valid_splits:
+            raise ValueError(
+                f"staged group {group_slug} has an invalid agriculture split: "
+                f"{record.agriculture_split!r}"
+            )
+        expected = expected_splits.get(record.doc_id)
+        if expected is None or expected.value != record.agriculture_split:
+            raise ValueError(
+                f"staged group {group_slug} has a record outside the current category decisions: "
+                f"{record.doc_id}"
+            )
 
 
 def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--out-root", type=Path, default=Path("out/phenotype-30000"))
+    parser.add_argument("--out-root", type=Path, default=Path(f"out/{OUTPUT_PROFILE}"))
     parser.add_argument("--cache", type=Path, default=Path(".cache/pdfs"))
     parser.add_argument("--repo", default=DEFAULT_REPO)
     parser.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
@@ -218,15 +296,23 @@ def _run_group(
     group_dir: Path,
     cache_dir: Path,
     terms: frozenset[str],
-    caption_terms: frozenset[str],
+    conventional_terms: frozenset[str],
+    sustainable_terms: frozenset[str],
     threshold: float,
     seed: int,
     workers: int,
     resume: bool,
-) -> tuple[tuple[int, int, int, int], str]:
+) -> tuple[tuple[int, int, int, int, int], str]:
     if resume and (group_dir / "metadata.jsonl").exists():
         return (
-            _reuse_group(group=group, out_dir=group_dir, terms=terms, threshold=threshold),
+            _reuse_group(
+                group=group,
+                out_dir=group_dir,
+                terms=terms,
+                conventional_terms=conventional_terms,
+                sustainable_terms=sustainable_terms,
+                threshold=threshold,
+            ),
             "reused",
         )
     partial_dir = _prepare_group_dir(group_dir, resume=resume)
@@ -235,7 +321,8 @@ def _run_group(
         out_dir=partial_dir,
         cache_dir=cache_dir,
         terms=terms,
-        caption_terms=caption_terms,
+        conventional_terms=conventional_terms,
+        sustainable_terms=sustainable_terms,
         threshold=threshold,
         seed=seed,
         workers=workers,
@@ -252,20 +339,22 @@ def main(argv: Sequence[str] | None = None) -> int:
     staging = args.out_root / "groups"
     dataset = args.out_root / "dataset"
     publish = args.out_root / "publish"
-    caption_terms = load_phenotype_lexicon()
-    terms = load_lexicon() if args.threshold > 0 else frozenset()
+    terms, conventional_terms, sustainable_terms = _build_lexicon_terms(
+        threshold=args.threshold
+    )
 
-    totals = [0, 0, 0, 0]
+    totals = [0, 0, 0, 0, 0]
     group_dirs = []
     for group in group_refs(args.shards, args.row_groups):
         group_dir = staging / group.slug
         group_dirs.append(group_dir)
-        (sampled, gated_out, built, images), action = _run_group(
+        (sampled, gated_out, ambiguous_out, built, images), action = _run_group(
             group=group,
             group_dir=group_dir,
             cache_dir=args.cache,
             terms=terms,
-            caption_terms=caption_terms,
+            conventional_terms=conventional_terms,
+            sustainable_terms=sustainable_terms,
             threshold=args.threshold,
             seed=args.seed,
             workers=args.workers,
@@ -274,11 +363,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         totals = [
             totals[0] + sampled,
             totals[1] + gated_out,
-            totals[2] + built,
-            totals[3] + images,
+            totals[2] + ambiguous_out,
+            totals[3] + built,
+            totals[4] + images,
         ]
         print(
-            f"{group.slug}: skipped {gated_out}/{sampled}, "
+            f"{group.slug}: skipped {gated_out} text-gated and {ambiguous_out} ambiguous "
+            f"of {sampled}, "
             f"{action} {built} documents and {images} images",
             file=sys.stderr,
         )
@@ -292,10 +383,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         sampled=totals[0],
         seed=args.seed,
         source_shards=len(set(args.shards)),
+        text_gated=totals[1],
+        ambiguous=totals[2],
     )
     print(
-        f"scaled build: sampled {totals[0]}, skipped {totals[1]}, built {totals[2]}, "
-        f"extracted {totals[3]}, published {package.n_rows} rows in {publish}"
+        f"scaled build: sampled {totals[0]}, text-gated {totals[1]}, "
+        f"ambiguous {totals[2]}, built {totals[3]}, "
+        f"extracted {totals[4]}, published {package.n_rows} rows in {publish}"
     )
     return 0
 
