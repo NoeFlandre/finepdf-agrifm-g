@@ -1,9 +1,16 @@
 import json
 import shlex
+from pathlib import Path
 
 import pytest
 from scripts.grid5000.commands import render_submission_command, render_worker_command
 from scripts.grid5000.config import RunConfig
+from scripts.grid5000.remote import (
+    SubmissionError,
+    parse_job_id,
+    parse_policy_result,
+    refuse_duplicate_submission,
+)
 
 
 def test_run_id_is_stable_for_the_same_configuration():
@@ -43,3 +50,23 @@ def test_worker_command_is_shell_quoted():
 
     assert shlex.quote("/home/u/run source/scripts/grid5000/worker.sh") in command
     assert "AGRIFM_G_GRID5000_JOB=1" in command
+
+
+def test_policy_is_accepted_only_when_no_jobs_are_flagged():
+    assert parse_policy_result(0, "No jobs flagged\n").ok
+    assert not parse_policy_result(0, "Error: database unavailable\n").ok
+    assert not parse_policy_result(1, "No jobs flagged\n").ok
+
+
+def test_oarsub_job_id_is_required_and_unambiguous():
+    assert parse_job_id("OAR_JOB_ID=12345\n") == "12345"
+    with pytest.raises(SubmissionError):
+        parse_job_id("submitted but no id\n")
+
+
+def test_existing_submission_state_blocks_duplicate_submission(tmp_path: Path):
+    state = tmp_path / "submission.json"
+    state.write_text('{"job_id": "123", "status": "queued"}\n')
+
+    with pytest.raises(SubmissionError, match="already submitted"):
+        refuse_duplicate_submission(state)
