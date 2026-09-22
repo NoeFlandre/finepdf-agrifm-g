@@ -20,7 +20,7 @@ def memory_property(config: RunConfig) -> str:
 def render_worker_command(source_dir: str, spec_path: str) -> str:
     """Render the command executed inside the reserved allocation."""
     script = f"{source_dir.rstrip('/')}/scripts/grid5000/worker.sh"
-    return "AGRIFM_G_GRID5000_JOB=1 " + shlex.join(["bash", script, "--spec", spec_path])
+    return shlex.join(["env", "AGRIFM_G_GRID5000_JOB=1", "bash", script, "--spec", spec_path])
 
 
 def render_submission_command(config: RunConfig, source_dir: str, run_root: str) -> str:

@@ -56,6 +56,7 @@ def test_worker_command_is_shell_quoted():
 
     assert shlex.quote("/home/u/run source/scripts/grid5000/worker.sh") in command
     assert "AGRIFM_G_GRID5000_JOB=1" in command
+    assert "env" in command
 
 
 def test_policy_is_accepted_only_when_no_jobs_are_flagged():
