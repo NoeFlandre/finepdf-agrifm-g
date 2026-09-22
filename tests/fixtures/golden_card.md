@@ -84,8 +84,9 @@ On 567 hand-labelled images, the strict appearance rules removed **77.6%** at **
 The bounded run samples 3 English FinePDF shards with seed `42`, one row group each, so the sample is not an accident of a single crawl segment. PDFs are fetched from their original URLs and are not redistributed; `source_url` and `pdf_sha256` preserve provenance, but source licences are not audited.
 
 ```bash
-uv run python scripts/build_scaled_sample.py \
-  --out-root out/phenotype-30000 --cache .cache/pdfs --repo <repo>
+uv run python -m scripts.grid5000 preflight
+uv run python -m scripts.grid5000 submit --repo <repo>
+uv run python -m scripts.grid5000 fetch --run-id <run-id>
 ```
 
 - 40% of sampled documents were retrieved and parsed in this run; FinePDF URLs date from 2023 and many are unavailable.

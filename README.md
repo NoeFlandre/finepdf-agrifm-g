@@ -21,12 +21,21 @@ For the bounded scaled experiment (thirty FinePDF shards, one row group each, 30
 documents):
 
 ```bash
-uv run python scripts/build_scaled_sample.py \
-  --out-root out/phenotype-30000 --cache .cache/pdfs --repo <hf-repo>
+uv run python -m scripts.grid5000 preflight
+uv run python -m scripts.grid5000 submit --repo <hf-repo>
+# after OAR reports completion:
+uv run python -m scripts.grid5000 fetch --run-id <run-id>
 ```
 
-An interrupted run can safely continue with the same command plus `--resume`; completed
-row-group staging directories are validated and reused.
+The scaled extractor is Grid’5000-only; the Mac performs submission, monitoring and local
+artifact verification, not the heavy PDF work. The runner checks usage-policy conformance on
+every configured site, submits one bounded CPU job, and resumes completed row groups after an
+interrupted allocation. Use `cleanup --run-id <run-id> --confirm-run-id <run-id>` only after
+the fetched artifact has been verified.
+
+If an OAR allocation terminates before packaging, rerun the same submission options with
+`--resume`; the runner verifies that the previous job is terminal and reuses only completed
+row-group checkpoints.
 
 `build` produces a working directory; `package` produces what is published: deduplicated
 parquet shards with an `Image()` column, generated `stats.json` and a generated card.
@@ -45,5 +54,6 @@ parquet shards with an `Image()` column, generated `stats.json` and a generated 
 | `src/agrifm_g/pipeline.py` | composition of the above |
 | `src/agrifm_g/cli.py` | `sample`, `build`, `verify`, `publish` |
 | `scripts/build_scaled_sample.py` | bounded multi-row-group build and package |
+| `scripts/grid5000/` | policy-aware Grid’5000 submission, worker and receipt workflow |
 | `data/sample_manifest.json` | the frozen, seeded sample |
 | `docs/adr/` | why it is shaped this way |

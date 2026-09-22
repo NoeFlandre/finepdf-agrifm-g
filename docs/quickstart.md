@@ -23,18 +23,31 @@ The cheap scaled run processes one row group from each of thirty FinePDF shards
 0.5% text gate, keeps only explicitly captioned images whose captions contain a lexicon word,
 and applies the strict appearance rules:
 
+The scaled extractor runs only on a reserved Grid’5000 node. The Mac submits and verifies the
+job:
+
 ```bash
-uv run python scripts/build_scaled_sample.py \
-  --out-root out/phenotype-30000 --cache .cache/pdfs \
-  --repo NoeFlandre/finepdf-agrifm-g
+uv run python -m scripts.grid5000 preflight
+uv run python -m scripts.grid5000 submit --repo NoeFlandre/finepdf-agrifm-g
+uv run python -m scripts.grid5000 status --run-id <run-id>
+uv run python -m scripts.grid5000 fetch --run-id <run-id>
 ```
 
-It writes the working dataset to `out/phenotype-30000/dataset` and the publishable files to
-`out/phenotype-30000/publish`.
+The default pool covers Grenoble, Lille, Lyon, Nancy, Nantes, Rennes, Sophia, Toulouse and
+Luxembourg. Preflight runs `usagepolicycheck -t` on every site; submission runs it immediately
+before and after the single OAR job. The default request is one CPU host with 16 cores, 32 GB
+RAM and a four-hour walltime. Each completed row group is promoted atomically, so a terminated
+allocation can resume the exact run without recomputing completed groups.
 
-If the run is interrupted after a row-group boundary, rerun the same command with
-`--resume`. Complete staged groups are checked for missing files and reused; only incomplete or
-not-yet-built groups are processed.
+If the allocation terminates before packaging, rerun the same submit command with `--resume`.
+The runner refuses to create a second job while the previous one is still active.
+
+After local receipt/hash/schema verification, remove only that run's remote files:
+
+```bash
+uv run python -m scripts.grid5000 cleanup \
+  --run-id <run-id> --confirm-run-id <run-id>
+```
 
 ## Re-draw the sample
 

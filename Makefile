@@ -1,7 +1,7 @@
 UV ?= uv
 REPO ?= NoeFlandre/finepdf-agrifm-g
 
-.PHONY: install lint format typecheck test acceptance property arch crap mutation docs smoke smoke-offline publish-check qa
+.PHONY: install lint format typecheck test acceptance property arch crap mutation docs smoke smoke-offline publish-check qa grid5000-preflight grid5000-submit grid5000-status grid5000-fetch grid5000-cancel grid5000-cleanup
 
 install:
 	$(UV) sync --all-groups
@@ -48,6 +48,28 @@ smoke:
 
 publish-check:
 	AGRIFM_G_INTEGRATION=1 $(UV) run pytest tests/integration/test_published_dataset.py -q
+
+grid5000-preflight:
+	$(UV) run python -m scripts.grid5000 preflight
+
+grid5000-submit:
+	$(UV) run python -m scripts.grid5000 submit --repo $(REPO)
+
+grid5000-status:
+	@test -n "$(RUN_ID)" || (echo "set RUN_ID=<run-id>" >&2; exit 2)
+	$(UV) run python -m scripts.grid5000 status --run-id $(RUN_ID)
+
+grid5000-fetch:
+	@test -n "$(RUN_ID)" || (echo "set RUN_ID=<run-id>" >&2; exit 2)
+	$(UV) run python -m scripts.grid5000 fetch --run-id $(RUN_ID)
+
+grid5000-cancel:
+	@test -n "$(RUN_ID)" || (echo "set RUN_ID=<run-id>" >&2; exit 2)
+	$(UV) run python -m scripts.grid5000 cancel --run-id $(RUN_ID)
+
+grid5000-cleanup:
+	@test -n "$(RUN_ID)" || (echo "set RUN_ID=<run-id>" >&2; exit 2)
+	$(UV) run python -m scripts.grid5000 cleanup --run-id $(RUN_ID) --confirm-run-id $(RUN_ID)
 
 qa: lint typecheck test property acceptance arch crap mutation docs smoke-offline
 	@echo "gauntlet passed"

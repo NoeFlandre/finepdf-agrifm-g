@@ -92,8 +92,9 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             " licences are not audited.",
             "",
             "```bash",
-            "uv run python scripts/build_scaled_sample.py \\",
-            "  --out-root out/phenotype-30000 --cache .cache/pdfs --repo <repo>",
+            "uv run python -m scripts.grid5000 preflight",
+            "uv run python -m scripts.grid5000 submit --repo <repo>",
+            "uv run python -m scripts.grid5000 fetch --run-id <run-id>",
             "```",
             "",
             f"- {documents['fetch_yield']:.0%} of sampled documents were retrieved and parsed in"
