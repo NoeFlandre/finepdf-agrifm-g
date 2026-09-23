@@ -40,5 +40,7 @@ def test_a_row_decodes_to_the_stored_dimensions(dataset, split):
 
 
 def test_image_hashes_are_unique_across_the_dataset(dataset):
-    hashes = dataset["conventional"]["image_sha256"] + dataset["sustainable"]["image_sha256"]
+    hashes = list(dataset["conventional"]["image_sha256"]) + list(
+        dataset["sustainable"]["image_sha256"]
+    )
     assert len(set(hashes)) == len(hashes)
