@@ -33,6 +33,15 @@ def test_the_caveat_is_stated_plainly():
     assert "captions are optional metadata and never a filter" in a_card()
 
 
+def test_the_card_prominently_marks_this_as_a_prototype():
+    card = a_card()
+    assert "pretty_name: FinePDF Agriculture Images (Prototype)" in card
+    assert "  - prototype\n" in card
+    assert "  - work-in-progress\n" in card
+    assert "Work in progress — prototype only, not a final dataset." in card
+    assert "Its contents, labels, splits, and filters are provisional and may change." in card
+
+
 def test_the_schema_table_lists_every_published_column():
     from agrifm_g.domain.rows import COLUMNS
 

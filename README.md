@@ -1,7 +1,10 @@
 # AGRIFM-G — FinePDF agriculture images
 
 This repository builds an English-only image dataset from [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs).
-The published dataset has two mutually exclusive splits:
+
+> **Work in progress — prototype only, not a final dataset.** This iteration may be incomplete or contain mistakes. Its contents, labels, splits, and filters are provisional and may change. It is for experimentation only, not a validated or production-ready resource.
+
+The current prototype snapshot has two mutually exclusive, provisional splits:
 
 - `conventional`: tractors, machinery, silos, farm buildings, field operations, and other conventional or industrial agriculture scenes.
 - `sustainable`: permaculture, agroecology, agroforestry, hydroponics, organic and regenerative practices, and related sustainable-farm scenes.
@@ -34,7 +37,7 @@ uv run python -m scripts.grid5000 cleanup \
   --run-id <run-id> --confirm-run-id <run-id>
 ```
 
-## Load the published dataset
+## Load the current prototype release
 
 ```python
 from datasets import load_dataset

@@ -1,5 +1,5 @@
 ---
-pretty_name: FinePDF Agriculture Images
+pretty_name: FinePDF Agriculture Images (Prototype)
 license: cc-by-4.0
 language:
   - en
@@ -16,6 +16,8 @@ tags:
   - sustainable-agriculture
   - finepdf
   - document-images
+  - prototype
+  - work-in-progress
 configs:
   - config_name: default
     data_files:
@@ -26,6 +28,9 @@ configs:
 ---
 
 # me/thing
+
+> **Work in progress — prototype only, not a final dataset.**
+> This is an iteration snapshot, not a finished or fully validated dataset. Its contents, labels, splits, and filters are provisional and may change. Use it for experimentation only; do not treat it as a complete, authoritative, or production-ready resource.
 
 An English-only [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs) image dataset for general agricultural scenes and operations. Each row is one retained embedded raster image with document text, optional caption, and provenance.
 

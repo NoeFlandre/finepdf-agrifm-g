@@ -36,6 +36,14 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             _front_matter(n_rows),
             f"# {repo_id}",
             "",
+            "> **Work in progress — prototype only, not a final dataset.**",
+            "> This is an iteration snapshot, not a finished or fully "
+            "validated dataset. Its contents, labels, splits, and "
+            "filters are provisional and may change. Use it for "
+            "experimentation only; do not treat it as a complete, "
+            "authoritative, or "
+            "production-ready resource.",
+            "",
             "An English-only [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs)"
             " image dataset for general agricultural scenes and operations. Each row is one"
             " retained embedded raster image with document text, optional caption, and provenance.",
@@ -112,7 +120,7 @@ def _front_matter(n_rows: int) -> str:
     return "\n".join(
         [
             "---",
-            "pretty_name: FinePDF Agriculture Images",
+            "pretty_name: FinePDF Agriculture Images (Prototype)",
             "license: cc-by-4.0",
             "language:",
             "  - en",
@@ -129,6 +137,8 @@ def _front_matter(n_rows: int) -> str:
             "  - sustainable-agriculture",
             "  - finepdf",
             "  - document-images",
+            "  - prototype",
+            "  - work-in-progress",
             "configs:",
             "  - config_name: default",
             "    data_files:",
