@@ -89,6 +89,15 @@ def test_the_text_gate_skips_documents_before_they_are_fetched(tmp_path, fixture
     assert fetcher.calls == ["https://example.org/0.pdf"]
 
 
+def test_the_text_gate_partitions_rows_in_original_order():
+    from agrifm_g.pipeline import _filter_text_gate
+
+    kept, gated_out = _filter_text_gate(agricultural_rows(), TERMS, threshold=0.05)
+
+    assert [row.doc_id for row in kept] == ["keep-me"]
+    assert gated_out == 1
+
+
 def test_an_empty_lexicon_means_no_gate_rather_than_no_documents(tmp_path, fixtures):
     from agrifm_g.pipeline import build_with_outcome
 

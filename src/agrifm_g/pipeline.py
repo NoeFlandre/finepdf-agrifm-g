@@ -179,19 +179,46 @@ def _select_rows(
     conventional_terms: Collection[str] | None,
     sustainable_terms: Collection[str] | None,
 ) -> tuple[list[tuple[FinePdfRow, str]], int, int]:
-    wanted: list[tuple[FinePdfRow, str]] = []
+    text_passed, gated_out = _filter_text_gate(rows, terms, threshold)
+    wanted, ambiguous_out = _classify_rows(text_passed, conventional_terms, sustainable_terms)
+    return wanted, gated_out, ambiguous_out
+
+
+def _filter_text_gate(
+    rows: list[FinePdfRow], terms: Collection[str], threshold: float
+) -> tuple[list[FinePdfRow], int]:
+    text_passed: list[FinePdfRow] = []
     gated_out = 0
-    ambiguous_out = 0
     for row in rows:
         if not _worth_fetching(row, terms, threshold):
             gated_out += 1
             continue
+        text_passed.append(row)
+    return text_passed, gated_out
+
+
+def _classify_rows(
+    rows: list[FinePdfRow],
+    conventional_terms: Collection[str] | None,
+    sustainable_terms: Collection[str] | None,
+) -> tuple[list[tuple[FinePdfRow, str]], int]:
+    wanted: list[tuple[FinePdfRow, str]] = []
+    ambiguous_out = 0
+    for row in rows:
         split = _classify_if_configured(row.text, conventional_terms, sustainable_terms)
-        if split is None and conventional_terms is not None and sustainable_terms is not None:
+        if _is_ambiguous_split(split, conventional_terms, sustainable_terms):
             ambiguous_out += 1
             continue
         wanted.append((row, split.value if split else ""))
-    return wanted, gated_out, ambiguous_out
+    return wanted, ambiguous_out
+
+
+def _is_ambiguous_split(
+    split: AgricultureSplit | None,
+    conventional_terms: Collection[str] | None,
+    sustainable_terms: Collection[str] | None,
+) -> bool:
+    return split is None and conventional_terms is not None and sustainable_terms is not None
 
 
 def _payloads(
