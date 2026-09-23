@@ -8,7 +8,7 @@ import pytest
 from PIL import Image
 
 from agrifm_g.adapters import clip_relevance
-from agrifm_g.adapters.clip_relevance import PROMPTS, ClipImageRelevanceFilter
+from agrifm_g.adapters.clip_relevance import PROMPTS, ClipImageRelevanceFilter, _open_rgb
 from agrifm_g.domain.image_relevance import ImageRelevanceScores
 from agrifm_g.domain.records import DocumentRecord, ImageRef
 
@@ -101,6 +101,16 @@ def test_filter_fails_if_scorer_loses_an_image(tmp_path):
         image_filter.apply([a_record((relative,))], tmp_path)
 
 
+def test_model_input_is_downscaled_before_it_can_join_a_batch(tmp_path):
+    path = tmp_path / "large.png"
+    Image.new("RGB", (1200, 800), "green").save(path)
+
+    model_input = _open_rgb(path)
+
+    assert model_input.size == (448, 299)
+    model_input.close()
+
+
 def test_model_loader_pins_safe_weights_and_runs_on_cpu(monkeypatch):
     model = Mock()
     model.to.return_value = model
@@ -176,7 +186,9 @@ def test_reference_audit_requires_photo_recall_and_basic_noise_rejection(tmp_pat
             write_image(tmp_path / label / f"{index}.png")
     photo = ImageRelevanceScores(0.9, 0.05, 0.05)
     noise = ImageRelevanceScores(0.03, 0.85, 0.12)
-    image_filter = ClipImageRelevanceFilter(scorer=FakeScorer([photo, photo, noise, noise]))
+    image_filter = ClipImageRelevanceFilter(
+        scorer=FakeScorer([photo, photo, noise, noise, noise, noise, noise])
+    )
 
     counts = image_filter.audit_reference_examples(tmp_path)
 
@@ -185,7 +197,11 @@ def test_reference_audit_requires_photo_recall_and_basic_noise_rejection(tmp_pat
         "reference_photos_kept": 2,
         "reference_noise": 2,
         "reference_noise_rejected": 2,
+        "synthetic_chart_rejected": 1,
+        "synthetic_table_rejected": 1,
+        "synthetic_map_rejected": 1,
     }
+    assert image_filter.apply([], tmp_path).metadata["reference_audit"] == counts
 
 
 def test_reference_audit_fails_before_build_when_it_loses_a_known_photo(tmp_path):
@@ -194,7 +210,22 @@ def test_reference_audit_fails_before_build_when_it_loses_a_known_photo(tmp_path
             write_image(tmp_path / label / f"{index}.png")
     noise = ImageRelevanceScores(0.03, 0.85, 0.12)
     photo = ImageRelevanceScores(0.9, 0.05, 0.05)
-    image_filter = ClipImageRelevanceFilter(scorer=FakeScorer([noise, photo, noise, noise]))
+    image_filter = ClipImageRelevanceFilter(
+        scorer=FakeScorer([noise, photo, noise, noise, noise, noise, noise])
+    )
 
     with pytest.raises(RuntimeError, match="reference-image check failed"):
+        image_filter.audit_reference_examples(tmp_path)
+
+
+def test_reference_audit_requires_each_synthetic_document_type_to_be_rejected(tmp_path):
+    for label in ("keep", "reject"):
+        for index in range(2):
+            write_image(tmp_path / label / f"{index}.png")
+    photo = ImageRelevanceScores(0.9, 0.05, 0.05)
+    noise = ImageRelevanceScores(0.03, 0.85, 0.12)
+    scores = [photo, photo, noise, noise, photo, noise, noise]
+    image_filter = ClipImageRelevanceFilter(scorer=FakeScorer(scores))
+
+    with pytest.raises(RuntimeError, match="synthetic_chart_rejected.*0"):
         image_filter.audit_reference_examples(tmp_path)

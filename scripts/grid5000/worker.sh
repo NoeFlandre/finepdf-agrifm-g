@@ -36,6 +36,8 @@ cleanup_job_scratch() {
     rm -rf -- "${JOB_SCRATCH}"
 }
 trap cleanup_job_scratch EXIT
+mkdir -m 700 -p -- "${JOB_SCRATCH}/tmp"
+export TMPDIR="${JOB_SCRATCH}/tmp"
 export PIP_CACHE_DIR="${JOB_SCRATCH}/pip-cache"
 export UV_CACHE_DIR="${JOB_SCRATCH}/uv-cache"
 export UV_PROJECT_ENVIRONMENT="${JOB_SCRATCH}/venv"
@@ -44,8 +46,9 @@ export HF_HUB_DISABLE_TELEMETRY=1
 
 UV_BIN="$(command -v uv || true)"
 if [[ -z "$UV_BIN" ]]; then
-    python3 -m pip install --user --disable-pip-version-check 'uv==0.11.16'
-    UV_BIN="${HOME}/.local/bin/uv"
+    python3 -m pip install --prefix "${JOB_SCRATCH}/uv-prefix" \
+        --no-cache-dir --disable-pip-version-check 'uv==0.11.16'
+    UV_BIN="${JOB_SCRATCH}/uv-prefix/bin/uv"
 fi
 
 "$UV_BIN" sync --project "$SOURCE_DIR" --locked --no-dev --extra vision

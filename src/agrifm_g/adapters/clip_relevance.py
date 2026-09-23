@@ -8,9 +8,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from importlib import import_module
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Protocol
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from agrifm_g.domain.image_relevance import (
     ImageRelevanceScores,
@@ -21,7 +22,11 @@ from agrifm_g.domain.records import DocumentRecord, ImageRef
 DEFAULT_MODEL_ID = "openai/clip-vit-base-patch32"
 DEFAULT_MODEL_REVISION = "aba0d2990c5c81a51290b5e895dda8237b39e0be"
 PROMPT_VERSION = "agriculture-photo-v1"
+PREPROCESS_VERSION = "bicubic-edge-448-v1"
 DEFAULT_BATCH_SIZE = 32
+CLIP_CROP_EDGE = 224
+MAX_CLIP_PREPROCESS_EDGE = 2 * CLIP_CROP_EDGE
+SYNTHETIC_DOCUMENT_TYPES = ("chart", "table", "map")
 
 AGRICULTURE_PROMPTS = (
     "a photograph of a tractor, tiller, combine, or other farm machine at work",
@@ -96,6 +101,7 @@ class ClipImageRelevanceFilter:
         self.batch_size = batch_size
         self.num_threads = num_threads
         self.scorer = scorer
+        self.reference_audit: dict[str, int] | None = None
 
     def apply(self, records: Sequence[DocumentRecord], build_dir: Path) -> FilterResult:
         """Attach model scores and remove only high-confidence negative predictions."""
@@ -125,10 +131,22 @@ class ClipImageRelevanceFilter:
             "reference_photos_kept": sum(record.n_images for record in keep.records),
             "reference_noise": sum(record.n_images for record in reject_records),
             "reference_noise_rejected": reject.dropped,
+            **self._audit_synthetic_documents(),
         }
         if not _reference_filter_is_healthy(counts):
             raise RuntimeError(f"CLIP reference-image check failed: {counts}")
+        self.reference_audit = counts
         return counts
+
+    def _audit_synthetic_documents(self) -> dict[str, int]:
+        with TemporaryDirectory(prefix="agrifm-g-image-smoke-") as scratch_dir:
+            scratch = Path(scratch_dir)
+            records = _synthetic_document_records(scratch)
+            result = self.apply(records, scratch)
+        return {
+            f"synthetic_{kind}_rejected": int(record.n_images == 0)
+            for kind, record in zip(SYNTHETIC_DOCUMENT_TYPES, result.records, strict=True)
+        }
 
     def _score_images(
         self,
@@ -156,20 +174,29 @@ class ClipImageRelevanceFilter:
             MIN_NEGATIVE_CLASS_PROBABILITY,
         )
 
-        return {
+        metadata = {
             "method": "zero-shot CLIP class-group probabilities; uncertain images kept",
             "model_id": self.model_id,
             "model_revision": self.revision,
             "prompt_version": PROMPT_VERSION,
+            "preprocess_version": PREPROCESS_VERSION,
+            "max_preprocess_edge": MAX_CLIP_PREPROCESS_EDGE,
             "batch_size": self.batch_size,
             "cpu_threads": getattr(self.scorer, "num_threads", self.num_threads),
             "max_agriculture_probability_to_drop": MAX_AGRICULTURE_PHOTO_PROBABILITY,
             "min_negative_probability_to_drop": MIN_NEGATIVE_CLASS_PROBABILITY,
         }
+        if self.reference_audit is not None:
+            metadata["reference_audit"] = dict(self.reference_audit)
+        return metadata
 
 
 def _open_rgb(path: Path) -> Image.Image:
     with Image.open(path) as image:
+        image.thumbnail(
+            (MAX_CLIP_PREPROCESS_EDGE, MAX_CLIP_PREPROCESS_EDGE),
+            Image.Resampling.BICUBIC,
+        )
         return image.convert("RGB")
 
 
@@ -213,11 +240,117 @@ def _score_batch(
 
 def _reference_filter_is_healthy(counts: dict[str, int]) -> bool:
     return (
+        _reference_photos_are_healthy(counts)
+        and _reference_noise_is_healthy(counts)
+        and _synthetic_document_types_are_rejected(counts)
+    )
+
+
+def _reference_photos_are_healthy(counts: dict[str, int]) -> bool:
+    return (
         counts["reference_photos"] > 0
         and counts["reference_photos_kept"] == counts["reference_photos"]
-        and counts["reference_noise"] > 0
+    )
+
+
+def _reference_noise_is_healthy(counts: dict[str, int]) -> bool:
+    return (
+        counts["reference_noise"] > 0
         and counts["reference_noise_rejected"] / counts["reference_noise"] >= 0.5
     )
+
+
+def _synthetic_document_types_are_rejected(counts: dict[str, int]) -> bool:
+    return all(counts[f"synthetic_{kind}_rejected"] == 1 for kind in SYNTHETIC_DOCUMENT_TYPES)
+
+
+def _synthetic_document_records(directory: Path) -> list[DocumentRecord]:
+    draw_examples = (
+        ("chart", _draw_synthetic_chart),
+        ("table", _draw_synthetic_table),
+        ("map", _draw_synthetic_map),
+    )
+    records = []
+    for kind, draw_example in draw_examples:
+        image = Image.new("RGB", (448, 448), "white")
+        draw_example(ImageDraw.Draw(image))
+        path = directory / f"{kind}.png"
+        image.save(path)
+        image.close()
+        image_ref = ImageRef(
+            path=path.name,
+            page=0,
+            width=448,
+            height=448,
+            format="png",
+            sha256=hashlib.sha256(path.read_bytes()).hexdigest(),
+            n_colours=30000,
+            dominant_colour_share=0.0,
+            near_white_share=0.0,
+            edge_density=0.2,
+        )
+        records.append(
+            DocumentRecord(
+                doc_id=f"reference-synthetic-{kind}",
+                source_url=f"reference://synthetic/{kind}",
+                pdf_path=f"reference-{kind}.pdf",
+                pdf_sha256="0" * 64,
+                text="",
+                images=(image_ref,),
+                agriculture_split="conventional",
+            )
+        )
+    return records
+
+
+def _draw_synthetic_chart(draw: ImageDraw.ImageDraw) -> None:
+    for coordinate in range(80, 401, 64):
+        draw.line((coordinate, 72, coordinate, 368), fill=(215, 215, 215), width=1)
+        draw.line((72, coordinate, 400, coordinate), fill=(215, 215, 215), width=1)
+    draw.line((72, 72, 72, 368, 400, 368), fill=(20, 20, 20), width=3)
+    points = [(96, 320), (160, 280), (224, 298), (288, 190), (352, 120)]
+    draw.line(points, fill=(25, 90, 180), width=6)
+    for x, y in points:
+        draw.ellipse((x - 7, y - 7, x + 7, y + 7), fill=(25, 90, 180))
+    draw.text((150, 28), "CHART", fill=(20, 20, 20))
+
+
+def _draw_synthetic_table(draw: ImageDraw.ImageDraw) -> None:
+    left, top, cell_width, cell_height = 48, 64, 88, 48
+    for row in range(7):
+        for column in range(4):
+            x = left + column * cell_width
+            y = top + row * cell_height
+            draw.rectangle((x, y, x + cell_width, y + cell_height), outline=(30, 30, 30))
+            if row and column:
+                draw.text((x + 25, y + 17), str(row * column * 3), fill=(20, 20, 20))
+    draw.text((170, 28), "DATA TABLE", fill=(20, 20, 20))
+
+
+def _draw_synthetic_map(draw: ImageDraw.ImageDraw) -> None:
+    outline = [
+        (84, 112),
+        (170, 72),
+        (230, 105),
+        (316, 82),
+        (376, 154),
+        (348, 246),
+        (384, 316),
+        (292, 368),
+        (220, 340),
+        (142, 382),
+        (76, 300),
+        (96, 212),
+        (64, 168),
+        (84, 112),
+    ]
+    draw.line(outline, fill=(30, 30, 30), width=4)
+    draw.line([(170, 72), (186, 162), (142, 212), (220, 340)], fill=(90, 90, 90), width=3)
+    draw.line([(230, 105), (252, 184), (348, 246)], fill=(90, 90, 90), width=3)
+    draw.line([(96, 212), (186, 162), (252, 184), (316, 82)], fill=(90, 90, 90), width=3)
+    draw.rectangle((288, 312, 380, 384), outline=(30, 30, 30), width=2)
+    draw.text((308, 322), "LEGEND", fill=(20, 20, 20))
+    draw.text((196, 28), "MAP", fill=(20, 20, 20))
 
 
 def _reference_records(reference_dir: Path, label: str) -> list[DocumentRecord]:

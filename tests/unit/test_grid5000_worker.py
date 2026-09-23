@@ -1,3 +1,5 @@
+import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -58,3 +60,83 @@ def test_receipt_hashes_publish_files(tmp_path: Path):
     assert receipt["status"] == "complete"
     assert receipt["files"]["stats.json"]["sha256"]
     assert receipt["files"]["data/part.parquet"]["size"] == len(b"payload")
+
+
+def test_worker_uv_fallback_stays_inside_job_scratch(tmp_path: Path):
+    repo = Path(__file__).resolve().parents[2]
+    worker = repo / "scripts" / "grid5000" / "worker.sh"
+    temp_root = tmp_path / "node-tmp"
+    temp_root.mkdir()
+    mock_bin = tmp_path / "mock-bin"
+    mock_bin.mkdir()
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    spec = run_dir / "spec.json"
+    spec.write_text("{}", encoding="utf-8")
+    nodefile = tmp_path / "nodefile"
+    nodefile.write_text("node-1\n", encoding="utf-8")
+    log = tmp_path / "uv-calls.log"
+    environment_log = tmp_path / "uv-environment.log"
+    prefix_log = tmp_path / "uv-prefix.log"
+    fake_python = mock_bin / "python3"
+    fake_python.write_text(
+        """#!/bin/sh
+prefix=
+while [ "$#" -gt 0 ]; do
+    if [ "$1" = "--prefix" ]; then shift; prefix="$1"; fi
+    shift
+done
+    if [ -z "$prefix" ]; then exit 91; fi
+printf '%s\\n' "$prefix" > "$AGRIFM_G_TEST_PREFIX_LOG"
+mkdir -p "$prefix/bin"
+cat > "$prefix/bin/uv" <<'UV'
+#!/bin/sh
+printf '%s\\n' "$*" >> "$AGRIFM_G_TEST_LOG"
+printf '%s|%s|%s|%s|%s\\n' \\
+    "$TMPDIR" "$HF_HOME" "$PIP_CACHE_DIR" "$UV_CACHE_DIR" "$UV_PROJECT_ENVIRONMENT" \\
+    >> "$AGRIFM_G_TEST_ENV_LOG"
+UV
+chmod +x "$prefix/bin/uv"
+""",
+        encoding="utf-8",
+    )
+    fake_python.chmod(0o755)
+    environment = {
+        **os.environ,
+        "AGRIFM_G_GRID5000_JOB": "1",
+        "AGRIFM_G_TEST_ENV_LOG": str(environment_log),
+        "AGRIFM_G_TEST_LOG": str(log),
+        "AGRIFM_G_TEST_PREFIX_LOG": str(prefix_log),
+        "OAR_JOB_ID": "12345",
+        "OAR_NODEFILE": str(nodefile),
+        "PATH": f"{mock_bin}:/usr/bin:/bin",
+        "TMPDIR": str(temp_root),
+    }
+
+    result = subprocess.run(
+        ["bash", str(worker), "--spec", str(spec)],
+        env=environment,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    scratch = temp_root / "agrifm-g-12345"
+    assert result.returncode == 0, result.stderr
+    assert not scratch.exists()
+    calls = log.read_text(encoding="utf-8").splitlines()
+    assert len(calls) == 2
+    assert "sync" in calls[0]
+    assert "run" in calls[1]
+    assert prefix_log.read_text(encoding="utf-8").strip() == str(scratch / "uv-prefix")
+    expected_paths = [
+        str(scratch / "tmp"),
+        str(scratch / "hf-cache"),
+        str(scratch / "pip-cache"),
+        str(scratch / "uv-cache"),
+        str(scratch / "venv"),
+    ]
+    assert environment_log.read_text(encoding="utf-8").splitlines() == [
+        "|".join(expected_paths),
+        "|".join(expected_paths),
+    ]

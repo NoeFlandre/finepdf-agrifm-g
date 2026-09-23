@@ -357,7 +357,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         "CLIP reference check: "
         f"kept {visual_check['reference_photos_kept']}/{visual_check['reference_photos']} photos; "
         f"rejected {visual_check['reference_noise_rejected']}/"
-        f"{visual_check['reference_noise']} obvious negatives",
+        f"{visual_check['reference_noise']} obvious negatives; synthetic documents "
+        f"chart={visual_check['synthetic_chart_rejected']}, "
+        f"table={visual_check['synthetic_table_rejected']}, "
+        f"map={visual_check['synthetic_map_rejected']}",
         file=sys.stderr,
     )
 
