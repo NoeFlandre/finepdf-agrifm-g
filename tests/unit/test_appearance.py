@@ -2,10 +2,17 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from agrifm_g.domain.appearance import (
+    DOCUMENT_PAGE_ASPECT_TOLERANCE,
     MAX_DOMINANT_COLOUR_SHARE,
+    MAX_LOW_INFORMATION_COLOURS,
+    MAX_LOW_INFORMATION_EDGE_DENSITY,
     MAX_NEAR_WHITE_SHARE,
+    MIN_DOCUMENT_PAGE_EDGE_DENSITY,
+    MIN_DOCUMENT_PAGE_NEAR_WHITE_SHARE,
+    MIN_LOW_INFORMATION_DOMINANT_SHARE,
     AppearanceRule,
     ImageMetrics,
+    _has_positive_dimensions,
     looks_like_document_page_scan,
     rejection_rule,
 )
@@ -51,6 +58,15 @@ def test_nearly_uniform_black_placeholder_is_rejected():
         edge_density=0.06195,
     )
     assert rejection_rule(placeholder) is AppearanceRule.LOW_INFORMATION
+
+
+def test_low_information_boundaries_are_inclusive():
+    boundary = metrics(
+        n_colours=MAX_LOW_INFORMATION_COLOURS,
+        dominant_colour_share=MIN_LOW_INFORMATION_DOMINANT_SHARE,
+        edge_density=MAX_LOW_INFORMATION_EDGE_DENSITY,
+    )
+    assert rejection_rule(boundary) is AppearanceRule.LOW_INFORMATION
 
 
 def test_low_texture_images_are_not_rejected():
@@ -141,3 +157,46 @@ def test_page_scan_detector_rejects_invalid_geometry_without_dividing():
         page_height=842,
         page_image_count=1,
     )
+
+
+def test_page_scan_dimensions_must_all_be_positive():
+    assert _has_positive_dimensions(1, 1, 1, 1)
+    for dimensions in (
+        (0, 1, 1, 1),
+        (1, 0, 1, 1),
+        (1, 1, 0, 1),
+        (1, 1, 1, 0),
+    ):
+        assert not _has_positive_dimensions(*dimensions)
+
+
+def test_page_scan_appearance_requires_all_inclusive_thresholds():
+    page = {
+        "image_width": 100,
+        "image_height": 100,
+        "page_width": 100,
+        "page_height": 100,
+        "page_image_count": 1,
+    }
+    too_few_edges = ImageMetrics(2_416, 0.5, MIN_DOCUMENT_PAGE_NEAR_WHITE_SHARE, 0.0, True)
+    colour_page = ImageMetrics(2_416, 0.5, 0.9, 0.3, False)
+    white_boundary = ImageMetrics(2_416, 0.5, MIN_DOCUMENT_PAGE_NEAR_WHITE_SHARE, 0.3, True)
+    edge_boundary = ImageMetrics(2_416, 0.5, 0.9, MIN_DOCUMENT_PAGE_EDGE_DENSITY, True)
+
+    assert not looks_like_document_page_scan(too_few_edges, **page)
+    assert not looks_like_document_page_scan(colour_page, **page)
+    assert looks_like_document_page_scan(white_boundary, **page)
+    assert looks_like_document_page_scan(edge_boundary, **page)
+
+
+def test_page_scan_aspect_tolerance_boundary_is_inclusive():
+    scan = ImageMetrics(2_416, 0.5, 0.71, 0.26, True)
+    assert looks_like_document_page_scan(
+        scan,
+        image_width=97,
+        image_height=100,
+        page_width=100,
+        page_height=100,
+        page_image_count=1,
+    )
+    assert 1 - DOCUMENT_PAGE_ASPECT_TOLERANCE == 97 / 100
