@@ -20,10 +20,11 @@ The pipeline drops only obvious failures:
 - images below the minimum usable size;
 - single-colour, nearly blank, or overwhelmingly flat-colour images;
 - nearly uniform low-colour placeholders with very little edge detail;
-- a single page-shaped grayscale raster with a paper-like background and dense edges;
+- a single page-shaped grayscale raster with a paper-like background (at least 60%) and dense edges (at least 15%);
+- antialiased near-solid placeholders with at most 16 coarse colour bins, a 75% dominant bin, and at most 10% edge density;
 - extreme aspect ratios;
 - exact duplicate image bytes.
 
-There is no caption requirement. Captions are retained when extraction finds them, and captionless images remain eligible. There is no semantic classifier, OCR gate, general texture threshold, or line-art rule.
+There is no caption requirement. Captions are retained when extraction finds them, and captionless images remain eligible. After those inexpensive checks and global deduplication, pinned zero-shot CLIP compares each remaining image against agricultural-photography, document-figure, and unrelated-photo prompt groups. It rejects only when the agricultural-photo score is at most 0.12 and either negative class is at least 0.66. Scores are uncalibrated preferences; ambiguous images are retained. Captions and document text are not passed to CLIP.
 
-The page-scan check is deliberately narrow: full-page colour photos and figures remain eligible. It can miss scans split across multiple raster objects or colour scans; it may also reject a page-sized grayscale figure that looks document-like.
+The page-scan check is deliberately narrow: full-page colour photos and figures remain eligible. It can miss scans split across multiple raster objects or colour scans; it may also reject a page-sized grayscale figure that looks document-like. CLIP can also confuse unusual agricultural photos with graphics, so its pinned revision, prompts, scores, and drop counts are recorded for reproducibility.

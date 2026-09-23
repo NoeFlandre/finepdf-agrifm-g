@@ -78,13 +78,16 @@ def write_json_atomic(path: Path, payload: dict[str, Any]) -> None:
     pending.replace(path)
 
 
-def run_command(argv: Sequence[str], *, input_bytes: bytes | None = None) -> CommandResult:
+def run_command(
+    argv: Sequence[str], *, input_bytes: bytes | None = None, timeout: float | None = None
+) -> CommandResult:
     """Run one command with captured output and no implicit shell."""
     result = subprocess.run(
         list(argv),
         input=input_bytes,
         capture_output=True,
         check=False,
+        timeout=timeout,
     )
     return CommandResult(
         returncode=result.returncode,
@@ -95,7 +98,13 @@ def run_command(argv: Sequence[str], *, input_bytes: bytes | None = None) -> Com
 
 def ssh_command(site: str, command: str) -> CommandResult:
     """Run one command on a site frontend through the configured SSH alias."""
-    return run_command(["ssh", "-o", "BatchMode=yes", site, command])
+    try:
+        return run_command(
+            ["ssh", "-o", "BatchMode=yes", "-o", "ConnectTimeout=8", site, command],
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        return CommandResult(124, "", "SSH command exceeded the 30-second timeout")
 
 
 def check_policy(site: str) -> PolicyResult:

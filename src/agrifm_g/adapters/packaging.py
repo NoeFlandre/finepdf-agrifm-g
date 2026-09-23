@@ -6,17 +6,26 @@ import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 from agrifm_g.domain.agriculture import AgricultureSplit
 from agrifm_g.domain.card import render_card
-from agrifm_g.domain.dedup import deduplicate
+from agrifm_g.domain.dedup import DropReason, deduplicate
 from agrifm_g.domain.records import DocumentRecord
 from agrifm_g.domain.rows import image_rows
 from agrifm_g.domain.stats import build_stats
 
 if TYPE_CHECKING:
     from datasets import Features
+
+    from agrifm_g.adapters.clip_relevance import FilterResult
+
+
+class VisualFilter(Protocol):
+    """Optional image-level filter applied after cheap checks and deduplication."""
+
+    def apply(self, records: Sequence[DocumentRecord], build_dir: Path) -> FilterResult: ...
+
 
 SHARD_TARGET_BYTES = 300 * 1024 * 1024
 DATA_DIR = "data"
@@ -51,6 +60,9 @@ def features() -> Features:
             "image_path": Value("string"),
             "n_colours": Value("int32"),
             "edge_density": Value("float32"),
+            "agriculture_photo_score": Value("float32"),
+            "document_figure_score": Value("float32"),
+            "unrelated_photo_score": Value("float32"),
             "caption": Value("string"),
             "source_url": Value("string"),
             "pdf_sha256": Value("string"),
@@ -72,16 +84,15 @@ def package_dataset(
     source_shards: int = 1,
     text_gated: int = 0,
     ambiguous: int = 0,
+    visual_filter: VisualFilter | None = None,
 ) -> Package:
     """Deduplicate, flatten to rows, and write the two agriculture split families."""
     kept, dropped = deduplicate(records)
+    kept, dropped, visual_filter_metadata = _apply_visual_filter(
+        kept, dropped, visual_filter, build_dir
+    )
     rows = [_with_image_bytes(build_dir, row) for row in image_rows(kept)]
-    rows_by_split = {split.value: [] for split in AgricultureSplit}
-    for row in rows:
-        split = row["agriculture_split"]
-        if split not in rows_by_split:
-            raise ValueError(f"record has no valid agriculture split: {split!r}")
-        rows_by_split[split].append(row)
+    rows_by_split = _rows_by_split(rows)
     stats = build_stats(
         kept,
         sampled=sampled,
@@ -90,6 +101,7 @@ def package_dataset(
         source_shards=source_shards,
         text_gated=text_gated,
         ambiguous=ambiguous,
+        visual_filter=visual_filter_metadata,
     )
     n_shards = _write_parquet(out_dir, rows_by_split)
     (out_dir / STATS_FILE).write_text(f"{json.dumps(stats, indent=2, sort_keys=True)}\n")
@@ -98,6 +110,31 @@ def package_dataset(
         encoding="utf-8",
     )
     return Package(directory=out_dir, n_rows=len(rows), n_shards=n_shards, stats=stats)
+
+
+def _apply_visual_filter(
+    kept: list[DocumentRecord],
+    dropped: dict[DropReason, int],
+    visual_filter: VisualFilter | None,
+    build_dir: Path,
+) -> tuple[list[DocumentRecord], dict[DropReason, int], dict[str, object] | None]:
+    metadata = None
+    if visual_filter is not None:
+        result = visual_filter.apply(kept, build_dir)
+        kept = result.records
+        dropped[DropReason.VISUAL_IRRELEVANCE] = result.dropped
+        metadata = result.metadata
+    return kept, dropped, metadata
+
+
+def _rows_by_split(rows: list[dict]) -> dict[str, list[dict]]:
+    grouped = {split.value: [] for split in AgricultureSplit}
+    for row in rows:
+        split = row["agriculture_split"]
+        if split not in grouped:
+            raise ValueError(f"record has no valid agriculture split: {split!r}")
+        grouped[split].append(row)
+    return grouped
 
 
 def _with_image_bytes(build_dir: Path, row: dict) -> dict:

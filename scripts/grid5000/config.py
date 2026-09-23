@@ -27,7 +27,9 @@ DEFAULT_WORKERS = 16
 DEFAULT_CORES = 16
 DEFAULT_MEMORY_GB = 32
 DEFAULT_WALLTIME = "04:00:00"
-DEFAULT_PIPELINE = "agriculture-splits-v2"
+DEFAULT_PIPELINE = "agriculture-splits-v3-clip"
+DEFAULT_IMAGE_FILTER_MODEL = "openai/clip-vit-base-patch32"
+DEFAULT_IMAGE_FILTER_REVISION = "aba0d2990c5c81a51290b5e895dda8237b39e0be"
 UV_VERSION = "0.11.16"
 
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")
@@ -51,9 +53,15 @@ class RunConfig:
     walltime: str = DEFAULT_WALLTIME
     sites: tuple[str, ...] = DEFAULT_SITES
     remote_root: str = "~/agrifm-g-runs"
+    image_filter_model: str = DEFAULT_IMAGE_FILTER_MODEL
+    image_filter_revision: str = DEFAULT_IMAGE_FILTER_REVISION
 
     def __post_init__(self) -> None:
         _validate_identity(self.commit, self.repo, self.seed)
+        if not self.image_filter_model or "/" not in self.image_filter_model:
+            raise ValueError("image_filter_model must be an owner/name identifier")
+        if not _COMMIT.fullmatch(self.image_filter_revision):
+            raise ValueError("image_filter_revision must be a 40-character lowercase SHA-1")
         if not self.pipeline or "/" in self.pipeline or ".." in self.pipeline:
             raise ValueError("pipeline must be a non-empty profile name")
         object.__setattr__(self, "shards", _positive_unique(self.shards, "shards"))

@@ -10,6 +10,11 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
+from agrifm_g.adapters.clip_relevance import (
+    DEFAULT_MODEL_ID,
+    DEFAULT_MODEL_REVISION,
+    ClipImageRelevanceFilter,
+)
 from agrifm_g.adapters.finepdf import FinePdfRow, ParquetRowSource
 from agrifm_g.adapters.lexicon import AgricultureLexicons, load_agriculture_lexicons
 from agrifm_g.adapters.packaging import package_dataset
@@ -243,6 +248,8 @@ def _parse_args(argv: Sequence[str] | None) -> argparse.Namespace:
         default=DEFAULT_WORKERS,
         help="documents retrieved at once; the build waits on dead URLs, not on work",
     )
+    parser.add_argument("--image-filter-model", default=DEFAULT_MODEL_ID)
+    parser.add_argument("--image-filter-revision", default=DEFAULT_MODEL_REVISION)
     parser.add_argument(
         "--resume",
         action="store_true",
@@ -340,6 +347,19 @@ def main(argv: Sequence[str] | None = None) -> int:
     dataset = args.out_root / "dataset"
     publish = args.out_root / "publish"
     terms, conventional_terms, sustainable_terms = _build_lexicon_terms(threshold=args.threshold)
+    visual_filter = ClipImageRelevanceFilter(
+        model_id=args.image_filter_model,
+        revision=args.image_filter_revision,
+        num_threads=args.workers,
+    )
+    visual_check = visual_filter.audit_reference_examples(Path("docs/images"))
+    print(
+        "CLIP reference check: "
+        f"kept {visual_check['reference_photos_kept']}/{visual_check['reference_photos']} photos; "
+        f"rejected {visual_check['reference_noise_rejected']}/"
+        f"{visual_check['reference_noise']} obvious negatives",
+        file=sys.stderr,
+    )
 
     totals = [0, 0, 0, 0, 0]
     group_dirs = []
@@ -383,6 +403,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         source_shards=len(set(args.shards)),
         text_gated=totals[1],
         ambiguous=totals[2],
+        visual_filter=visual_filter,
     )
     print(
         f"scaled build: sampled {totals[0]}, text-gated {totals[1]}, "

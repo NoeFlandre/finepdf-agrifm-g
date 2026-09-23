@@ -3,6 +3,7 @@ import shlex
 from pathlib import Path
 
 import pytest
+from scripts.grid5000 import remote
 from scripts.grid5000.commands import (
     memory_property,
     render_submission_command,
@@ -38,7 +39,7 @@ def test_config_round_trips_as_sorted_json():
     payload = json.loads(config.to_json())
     assert payload["shards"] == [0, 2]
     assert payload["row_groups"] == [0, 1]
-    assert payload["pipeline"] == "agriculture-splits-v2"
+    assert payload["pipeline"] == "agriculture-splits-v3-clip"
 
 
 def test_pipeline_profile_changes_the_run_identity():
@@ -66,6 +67,30 @@ def test_worker_command_is_shell_quoted():
     assert shlex.quote("/home/u/run source/scripts/grid5000/worker.sh") in command
     assert "AGRIFM_G_GRID5000_JOB=1" in command
     assert "env" in command
+
+
+def test_ssh_probe_uses_a_bounded_connection_and_command_timeout(monkeypatch):
+    seen = {}
+
+    def fake_run_command(argv, *, input_bytes=None, timeout=None):
+        seen["argv"] = argv
+        seen["timeout"] = timeout
+        return remote.CommandResult(0, "", "")
+
+    monkeypatch.setattr(remote, "run_command", fake_run_command)
+
+    remote.ssh_command("lyon", "true")
+
+    assert seen["argv"] == [
+        "ssh",
+        "-o",
+        "BatchMode=yes",
+        "-o",
+        "ConnectTimeout=8",
+        "lyon",
+        "true",
+    ]
+    assert seen["timeout"] == 30
 
 
 def test_remote_fetch_uses_the_agriculture_publish_path():

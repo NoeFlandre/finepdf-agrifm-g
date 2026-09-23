@@ -1,37 +1,15 @@
-## Image Dataset Goal
+# FinePDF Agriculture Image Dataset Goal
 
-Build a **large, diverse dataset of ground-level agricultural images** extracted from FinePDF to pretrain **AGRIFM-G**, a visual foundation model for **plant phenotyping**.
+Build a diverse, English-only dataset of real agricultural imagery from FinePDF for AGRIFM-G.
+The dataset has two mutually exclusive document-topic splits:
 
-Prioritize:
-- Crops, plants, fruits, leaves, wheat ears, grains, seedlings
-- Different species, cultivars and growth stages
-- Diseases and biotic/abiotic stress
-- Field scenes and agricultural activities
-- Images useful for counting, detection, segmentation and phenotype characterization
+- `conventional`: tractors, tillers, combines, farm machinery and workers, fields, barns, silos,
+  livestock facilities, irrigation, harvesting, and other operational or conventional farming.
+- `sustainable`: permaculture, agroecology, agroforestry, organic and regenerative practices,
+  hydroponics, aquaponics, conservation farming, biodiversity, and related systems.
 
-Exclude:
-- Satellite/remote-sensing imagery
-- Icons, diagrams, plots and non-photographic figures
-- Generic images unrelated to agriculture or phenotyping
-
-## Dataset Types Sought
-
-The corpus is built from three **complementary** dataset families. The objective is
-complementarity, not raw image count.
-
-### 1. Pure phenotyping
-Precise images of plants, organs, canopies and plots, acquired via UAV, ground-based
-platforms, greenhouses, etc.
-*Profile: disparate, condensed, precise.*
-
-### 2. Operational agricultural images
-Photos of farms, tools, machinery and practices (grafting, pruning, irrigation,
-harvesting, etc.).
-*Profile: disparate, moderately condensed, diverse.*
-
-### 3. Niche datasets
-Infrequent species, rare crops, or very fine-grained taxonomies.
-*Profile: disparate, sparsely condensed, moderately diverse.*
-
-**Selection principle:** prefer datasets that fill gaps across these three families
-rather than maximizing the total number of images.
+Prefer useful photographs of farms, agricultural work, equipment, crops, livestock, and practices.
+Remove page scans, blank/near-solid placeholders, charts, tables, diagrams, maps, screenshots,
+icons, and clearly unrelated images. Extract actual embedded PDF images; do not publish a rendered
+page as a substitute for its figures. Captions are optional metadata and never decide whether an
+image is kept. Automated filtering runs on Grid'5000; no manual review is part of the build.

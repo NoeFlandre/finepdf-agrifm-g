@@ -19,6 +19,7 @@ def build_stats(
     source_shards: int = 1,
     text_gated: int = 0,
     ambiguous: int = 0,
+    visual_filter: Mapping[str, object] | None = None,
 ) -> dict:
     """Aggregate a finished build. Pure, and deterministic for a given build."""
     return {
@@ -33,6 +34,7 @@ def build_stats(
         ),
         "images": _image_stats(_all_images(records), dropped),
         "splits": _split_stats(records),
+        "visual_filter": dict(visual_filter) if visual_filter else None,
     }
 
 

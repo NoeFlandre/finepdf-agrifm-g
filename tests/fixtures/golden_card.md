@@ -72,6 +72,9 @@ dataset["sustainable"][0]["image"]  # PIL.Image
 | `image_path` | string | path in the temporary build directory |
 | `n_colours` | int32 | distinct colours measured on a thumbnail |
 | `edge_density` | float32 | thumbnail edge share, used only by narrow noise checks |
+| `agriculture_photo_score` | float32 | CLIP class preference for agricultural photography |
+| `document_figure_score` | float32 | CLIP class preference for document figures and graphics |
+| `unrelated_photo_score` | float32 | CLIP class preference for unrelated photographs |
 | `caption` | string | optional PDF caption when one was detected |
 | `source_url` | string | original PDF URL for provenance |
 | `pdf_sha256` | string | hash of the retrieved PDF |
@@ -85,6 +88,7 @@ dataset["sustainable"][0]["image"]  # PIL.Image
 - Each passing document is assigned to the category with more exact matches from the extended conventional and sustainable agriculture lexicons. Ties and documents without category evidence are discarded. An image is never duplicated across splits.
 - All usable embedded raster images from an accepted document are considered; captions are optional metadata and never a filter.
 - Cheap sanity filters remove invalid, tiny, single-colour, nearly blank, overwhelmingly flat-colour, extreme-aspect-ratio, and duplicate images. Page-shaped grayscale scans with paper-like backgrounds and dense edges, plus nearly uniform low-colour placeholders, are also removed.
+- This packaging run did not apply an image-level semantic filter.
 
 ## Reproduce and limitations
 
@@ -97,7 +101,7 @@ uv run python -m scripts.grid5000 fetch --run-id <run-id>
 ~~~
 
 - 40% of sampled documents were retrieved and parsed in this run; FinePDF URLs date from 2023 and many are unavailable.
-- Only embedded raster images are extracted. Vector figures, OCR-only figures and linked images are out of scope. The conservative page-scan check can miss tiled or colour scans; document-level classification can leave unrelated figures in an otherwise relevant paper; this is intentional for recall and diversity.
+- Only embedded raster images are extracted. Vector figures, OCR-only figures and linked images are out of scope. The image-level model is a conservative screen, not a calibrated guarantee; uncertain images are retained, so some irrelevant figures can remain.
 
 ## Citation
 

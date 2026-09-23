@@ -16,6 +16,9 @@ SCHEMA_ROWS = (
     ("image_path", "string", "path in the temporary build directory"),
     ("n_colours", "int32", "distinct colours measured on a thumbnail"),
     ("edge_density", "float32", "thumbnail edge share, used only by narrow noise checks"),
+    ("agriculture_photo_score", "float32", "CLIP class preference for agricultural photography"),
+    ("document_figure_score", "float32", "CLIP class preference for document figures and graphics"),
+    ("unrelated_photo_score", "float32", "CLIP class preference for unrelated photographs"),
     ("caption", "string", "optional PDF caption when one was detected"),
     ("source_url", "string", "original PDF URL for provenance"),
     ("pdf_sha256", "string", "hash of the retrieved PDF"),
@@ -68,6 +71,7 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             " overwhelmingly flat-colour, extreme-aspect-ratio, and duplicate images."
             " Page-shaped grayscale scans with paper-like backgrounds and dense edges,"
             " plus nearly uniform low-colour placeholders, are also removed.",
+            *_visual_filter_description(stats.get("visual_filter")),
             "",
             "## Reproduce and limitations",
             "",
@@ -85,9 +89,9 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             f"- {documents['fetch_yield']:.0%} of sampled documents were retrieved and parsed in"
             " this run; FinePDF URLs date from 2023 and many are unavailable.",
             "- Only embedded raster images are extracted. Vector figures, OCR-only figures and"
-            " linked images are out of scope. The conservative page-scan check can miss tiled or"
-            " colour scans; document-level classification can leave unrelated figures"
-            " in an otherwise relevant paper; this is intentional for recall and diversity.",
+            " linked images are out of scope. The image-level model is a conservative screen, not"
+            " a calibrated guarantee; uncertain images are retained, so some irrelevant figures"
+            " can remain.",
             "",
             "## Citation",
             "",
@@ -136,6 +140,21 @@ def _front_matter(n_rows: int) -> str:
             "",
         ]
     )
+
+
+def _visual_filter_description(visual_filter: dict[str, Any] | None) -> list[str]:
+    if not visual_filter:
+        return ["- This packaging run did not apply an image-level semantic filter."]
+    return [
+        "- A pinned, zero-shot CLIP screen compares agricultural photos with document figures"
+        " and unrelated photos. It does not read captions or document text.",
+        f"- Model: `{visual_filter['model_id']}` at revision"
+        f" `{visual_filter['model_revision']}`; prompt set `{visual_filter['prompt_version']}`.",
+        "- Only high-confidence negatives are removed: agricultural-photo score at or below"
+        f" {visual_filter['max_agriculture_probability_to_drop']:.2f} and a negative-class score"
+        f" at or above {visual_filter['min_negative_probability_to_drop']:.2f}. Borderline"
+        " predictions stay in the dataset to preserve diversity.",
+    ]
 
 
 def _size_category(n_rows: int) -> str:

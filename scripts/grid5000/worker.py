@@ -57,6 +57,10 @@ def build_scaled_arguments(config: RunConfig, run_root: Path) -> list[str]:
         *(str(row_group) for row_group in config.row_groups),
         "--workers",
         str(config.workers),
+        "--image-filter-model",
+        config.image_filter_model,
+        "--image-filter-revision",
+        config.image_filter_revision,
     ]
     if (output_root / "groups").is_dir():
         arguments.append("--resume")

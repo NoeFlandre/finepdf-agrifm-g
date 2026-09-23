@@ -6,7 +6,7 @@ The published dataset has two mutually exclusive splits:
 - `conventional`: tractors, machinery, silos, farm buildings, field operations, and other conventional or industrial agriculture scenes.
 - `sustainable`: permaculture, agroecology, agroforestry, hydroponics, organic and regenerative practices, and related sustainable-farm scenes.
 
-The pipeline is fully automatic. It applies a broad text gate, classifies each accepted document with extended category lexicons, and extracts embedded raster images. Cheap visual checks remove obvious placeholders and dense page-shaped grayscale scans while keeping full-page colour photos eligible. Captions are optional metadata and never a filter.
+The pipeline is fully automatic. It applies a broad text gate, assigns each accepted document with extended category lexicons, and extracts embedded raster images. Cheap pixel checks remove blank, near-solid, and page-shaped grayscale scans; a pinned zero-shot CLIP screen then removes only confidently document-like or unrelated images. Uncertain images remain for diversity. Captions are optional metadata and never a filter.
 
 ## Local checks
 
@@ -44,7 +44,7 @@ dataset["conventional"][0]
 dataset["sustainable"][0]
 ```
 
-The card and viewer are generated from the same parquet files and statistics. Each row includes the decoded `image`, `agriculture_split`, source document text, optional caption, provenance URL, and content hashes.
+The card and viewer are generated from the same parquet files and statistics. Each row includes the decoded `image`, `agriculture_split`, model preference scores, source document text, optional caption, provenance URL, and content hashes.
 
 Run the local quality gates with:
 

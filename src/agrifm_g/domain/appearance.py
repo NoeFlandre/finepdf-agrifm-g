@@ -15,9 +15,13 @@ MAX_LOW_INFORMATION_COLOURS = 64
 MIN_LOW_INFORMATION_DOMINANT_SHARE = 0.75
 MAX_LOW_INFORMATION_EDGE_DENSITY = 0.10
 
-MIN_DOCUMENT_PAGE_NEAR_WHITE_SHARE = 0.45
-MIN_DOCUMENT_PAGE_EDGE_DENSITY = 0.18
+MIN_DOCUMENT_PAGE_NEAR_WHITE_SHARE = 0.60
+MIN_DOCUMENT_PAGE_EDGE_DENSITY = 0.15
 DOCUMENT_PAGE_ASPECT_TOLERANCE = 0.03
+
+MAX_COARSE_COLOUR_BINS = 16
+MIN_COARSE_DOMINANT_SHARE = 0.75
+MAX_COARSE_LOW_INFORMATION_EDGE_DENSITY = 0.10
 
 
 class AppearanceRule(StrEnum):
@@ -38,6 +42,8 @@ class ImageMetrics:
     near_white_share: float
     edge_density: float
     greyscale: bool = False
+    coarse_colour_bins: int = 0
+    coarse_dominant_share: float = 0.0
 
 
 def rejection_rule(metrics: ImageMetrics) -> AppearanceRule | None:
@@ -54,10 +60,22 @@ def rejection_rule(metrics: ImageMetrics) -> AppearanceRule | None:
 
 
 def _is_low_information(metrics: ImageMetrics) -> bool:
+    return _is_few_colour_low_information(metrics) or _is_coarse_low_information(metrics)
+
+
+def _is_few_colour_low_information(metrics: ImageMetrics) -> bool:
     return (
         metrics.n_colours <= MAX_LOW_INFORMATION_COLOURS
         and metrics.dominant_colour_share >= MIN_LOW_INFORMATION_DOMINANT_SHARE
         and metrics.edge_density <= MAX_LOW_INFORMATION_EDGE_DENSITY
+    )
+
+
+def _is_coarse_low_information(metrics: ImageMetrics) -> bool:
+    return (
+        0 < metrics.coarse_colour_bins <= MAX_COARSE_COLOUR_BINS
+        and metrics.coarse_dominant_share >= MIN_COARSE_DOMINANT_SHARE
+        and metrics.edge_density <= MAX_COARSE_LOW_INFORMATION_EDGE_DENSITY
     )
 
 

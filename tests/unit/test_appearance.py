@@ -1,6 +1,10 @@
+import io
+
 from hypothesis import given
 from hypothesis import strategies as st
+from PIL import Image, ImageDraw
 
+from agrifm_g.adapters.appearance import measure
 from agrifm_g.domain.appearance import (
     DOCUMENT_PAGE_ASPECT_TOLERANCE,
     MAX_DOMINANT_COLOUR_SHARE,
@@ -58,6 +62,32 @@ def test_nearly_uniform_black_placeholder_is_rejected():
         edge_density=0.06195,
     )
     assert rejection_rule(placeholder) is AppearanceRule.LOW_INFORMATION
+
+
+def test_antialiased_two_tone_placeholder_is_rejected():
+    placeholder = ImageMetrics(
+        n_colours=180,
+        dominant_colour_share=0.04,
+        near_white_share=0.08,
+        edge_density=0.035,
+        coarse_colour_bins=8,
+        coarse_dominant_share=0.91,
+    )
+    assert rejection_rule(placeholder) is AppearanceRule.LOW_INFORMATION
+
+
+def test_real_antialiased_placeholder_is_detected_from_coarse_histogram():
+    image = Image.new("RGB", (1024, 1024), "white")
+    ImageDraw.Draw(image).rounded_rectangle((8, 8, 1016, 952), radius=96, fill="black")
+    image = image.resize((256, 256), Image.Resampling.LANCZOS)
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+
+    measured = measure(buffer.getvalue())
+
+    assert measured.n_colours > MAX_LOW_INFORMATION_COLOURS
+    assert measured.coarse_colour_bins <= 16
+    assert rejection_rule(measured) is AppearanceRule.LOW_INFORMATION
 
 
 def test_low_information_boundaries_are_inclusive():
@@ -187,6 +217,18 @@ def test_page_scan_appearance_requires_all_inclusive_thresholds():
     assert not looks_like_document_page_scan(colour_page, **page)
     assert looks_like_document_page_scan(white_boundary, **page)
     assert looks_like_document_page_scan(edge_boundary, **page)
+
+
+def test_page_scan_rule_catches_a_dense_scan_just_below_the_old_edge_cutoff():
+    scan = ImageMetrics(117, 0.08, 0.8, 0.17, True)
+    assert looks_like_document_page_scan(
+        scan,
+        image_width=1654,
+        image_height=2338,
+        page_width=595,
+        page_height=842,
+        page_image_count=1,
+    )
 
 
 def test_page_scan_aspect_tolerance_boundary_is_inclusive():

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+from collections import Counter
 from typing import Any
 
 from PIL import Image, ImageFilter
@@ -29,6 +30,7 @@ def measure(png_bytes: bytes) -> ImageMetrics:
     sample.thumbnail((SAMPLE_SIDE, SAMPLE_SIDE))
     pixels = sample.width * sample.height
     colours = sample.getcolors(maxcolors=1 << 24) or []
+    coarse_colours = _coarse_histogram(colours)
     grey = sample.convert("L")
     return ImageMetrics(
         n_colours=len(colours),
@@ -37,7 +39,18 @@ def measure(png_bytes: bytes) -> ImageMetrics:
         / pixels,
         edge_density=_edge_density(grey, pixels),
         greyscale=_is_greyscale(colours, pixels),
+        coarse_colour_bins=len(coarse_colours),
+        coarse_dominant_share=max(coarse_colours.values(), default=0) / pixels,
     )
+
+
+def _coarse_histogram(colours: list[tuple[int, Any]]) -> Counter:
+    """Quantize the existing histogram, adding no full thumbnail pixel pass."""
+    counts: Counter = Counter()
+    for count, pixel in colours:
+        channels = pixel[:3] if isinstance(pixel, tuple) else (pixel, pixel, pixel)
+        counts[tuple(channel >> 5 for channel in channels)] += count
+    return counts
 
 
 def _is_greyscale(colours: list[tuple[int, Any]], pixels: int) -> bool:  # noqa: ANN401

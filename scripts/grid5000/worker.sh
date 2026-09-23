@@ -19,13 +19,28 @@ if [[ "$SPEC_PATH" == ~/* ]]; then
     SPEC_PATH="${HOME}/${SPEC_PATH#~/}"
 fi
 SPEC_PATH="$(cd "$(dirname "$SPEC_PATH")" && pwd)/$(basename "$SPEC_PATH")"
-RUN_ROOT="$(dirname "$SPEC_PATH")"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-mkdir -p -- "${RUN_ROOT}/pip-cache" "${RUN_ROOT}/uv-cache"
-export PIP_CACHE_DIR="${RUN_ROOT}/pip-cache"
-export UV_CACHE_DIR="${RUN_ROOT}/uv-cache"
+if [[ ! "${OAR_JOB_ID}" =~ ^[0-9]+$ ]]; then
+    printf '%s\n' 'OAR_JOB_ID must be numeric' >&2
+    exit 2
+fi
+JOB_SCRATCH="${TMPDIR:-/tmp}/agrifm-g-${OAR_JOB_ID}"
+if [[ -e "${JOB_SCRATCH}" ]]; then
+    printf 'refusing to reuse job scratch: %s\n' "${JOB_SCRATCH}" >&2
+    exit 2
+fi
+mkdir -m 700 -p -- "${JOB_SCRATCH}"
+cleanup_job_scratch() {
+    rm -rf -- "${JOB_SCRATCH}"
+}
+trap cleanup_job_scratch EXIT
+export PIP_CACHE_DIR="${JOB_SCRATCH}/pip-cache"
+export UV_CACHE_DIR="${JOB_SCRATCH}/uv-cache"
+export UV_PROJECT_ENVIRONMENT="${JOB_SCRATCH}/venv"
+export HF_HOME="${JOB_SCRATCH}/hf-cache"
+export HF_HUB_DISABLE_TELEMETRY=1
 
 UV_BIN="$(command -v uv || true)"
 if [[ -z "$UV_BIN" ]]; then
@@ -33,7 +48,7 @@ if [[ -z "$UV_BIN" ]]; then
     UV_BIN="${HOME}/.local/bin/uv"
 fi
 
-"$UV_BIN" sync --project "$SOURCE_DIR" --locked --no-dev
+"$UV_BIN" sync --project "$SOURCE_DIR" --locked --no-dev --extra vision
 cd "$SOURCE_DIR"
-exec "$UV_BIN" run --project "$SOURCE_DIR" --locked --no-dev \
+"$UV_BIN" run --project "$SOURCE_DIR" --locked --no-dev --extra vision \
     python -m scripts.grid5000.worker --spec "$SPEC_PATH"

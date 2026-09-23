@@ -26,7 +26,7 @@ uv run python -m scripts.grid5000 status --run-id <run-id>
 uv run python -m scripts.grid5000 fetch --run-id <run-id>
 ```
 
-The default run uses one CPU host, 16 cores, 32 GB RAM, and a four-hour walltime. The runner performs `usagepolicycheck -t` on every configured site during preflight and around the single submission. Each row group is promoted atomically; rerun the same command with `--resume` only after the previous job is terminal.
+The default run uses one CPU host, 16 cores, 32 GB RAM, and a four-hour walltime. It installs the pinned CPU vision dependencies and runs the pinned CLIP model only inside the reserved node. Model files, package caches, and the virtual environment live in job-specific node-local temporary storage and are removed on exit. The runner performs `usagepolicycheck -t` on every configured site during preflight and around the single submission. Each row group is promoted atomically; rerun the same command with `--resume` only after the previous job is terminal.
 
 After fetching, verify the local receipt, parquet schema, split counts, image decoding, hashes, and disjointness before publishing. Then remove only the confirmed remote run:
 

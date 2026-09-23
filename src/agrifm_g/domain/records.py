@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-EXTRACTION_VERSION = 7
+EXTRACTION_VERSION = 8
 """Bumped whenever extraction changes in a way that alters stored bytes."""
 
 
@@ -27,6 +27,11 @@ class ImageRef:
     greyscale: bool = False
     document_page_scan: bool = False
     caption: str = ""
+    coarse_colour_bins: int = 0
+    coarse_dominant_share: float = 0.0
+    agriculture_photo_score: float | None = None
+    document_figure_score: float | None = None
+    unrelated_photo_score: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,6 +82,11 @@ def record_to_json(record: DocumentRecord) -> str:
                 "greyscale": image.greyscale,
                 "document_page_scan": image.document_page_scan,
                 "caption": image.caption,
+                "coarse_colour_bins": image.coarse_colour_bins,
+                "coarse_dominant_share": round(image.coarse_dominant_share, 5),
+                "agriculture_photo_score": _rounded_score(image.agriculture_photo_score),
+                "document_figure_score": _rounded_score(image.document_figure_score),
+                "unrelated_photo_score": _rounded_score(image.unrelated_photo_score),
             }
             for image in record.images
         ],
@@ -110,6 +120,11 @@ def record_from_json(payload: dict[str, Any]) -> DocumentRecord:
                     greyscale=image.get("greyscale", False),
                     document_page_scan=image.get("document_page_scan", False),
                     caption=image.get("caption", ""),
+                    coarse_colour_bins=image.get("coarse_colour_bins", 0),
+                    coarse_dominant_share=image.get("coarse_dominant_share", 0.0),
+                    agriculture_photo_score=image.get("agriculture_photo_score"),
+                    document_figure_score=image.get("document_figure_score"),
+                    unrelated_photo_score=image.get("unrelated_photo_score"),
                 )
                 for image in payload["images"]
             ),
@@ -117,3 +132,7 @@ def record_from_json(payload: dict[str, Any]) -> DocumentRecord:
         )
     except (KeyError, TypeError) as error:
         raise ValueError(f"malformed record: {error}") from error
+
+
+def _rounded_score(value: float | None) -> float | None:
+    return round(value, 6) if value is not None else None

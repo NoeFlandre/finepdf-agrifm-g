@@ -43,6 +43,8 @@ class ExtractedImage:
     greyscale: bool = False
     document_page_scan: bool = False
     caption: str = ""
+    coarse_colour_bins: int = 0
+    coarse_dominant_share: float = 0.0
 
 
 def extract_images(pdf_bytes: bytes) -> tuple[ExtractedImage, ...]:
@@ -140,6 +142,8 @@ def _extract_page_images(
                     edge_density=metrics.edge_density,
                     greyscale=metrics.greyscale,
                     document_page_scan=document_page_scan,
+                    coarse_colour_bins=metrics.coarse_colour_bins,
+                    coarse_dominant_share=metrics.coarse_dominant_share,
                 )
             )
     return extracted

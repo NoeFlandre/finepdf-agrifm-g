@@ -1,10 +1,12 @@
 import hashlib
 import io
 import json
+from dataclasses import replace
 
 import pytest
 from PIL import Image
 
+from agrifm_g.adapters.clip_relevance import FilterResult
 from agrifm_g.adapters.extraction import ExtractedImage
 from agrifm_g.adapters.packaging import package_dataset
 from agrifm_g.adapters.storage import DocumentPayload, write_dataset
@@ -121,6 +123,65 @@ def test_duplicate_images_are_dropped_and_counted(tmp_path):
     package = package_dataset(build, out, repo_id="me/x", records=records, sampled=2, seed=3)
     assert package.n_rows == 2
     assert package.stats["images"]["dropped"]["duplicate"] == 2
+
+
+def test_semantic_filter_scores_retained_rows_and_reports_drops(tmp_path):
+    class FakeVisualFilter:
+        def apply(self, records, build_dir):
+            del build_dir
+            kept = [
+                replace(
+                    record,
+                    images=(
+                        replace(
+                            record.images[0],
+                            agriculture_photo_score=0.9,
+                            document_figure_score=0.05,
+                            unrelated_photo_score=0.05,
+                        ),
+                    ),
+                )
+                for record in records
+            ]
+            metadata = {
+                "model_id": "org/model",
+                "model_revision": "a" * 40,
+                "prompt_version": "test-v1",
+                "max_agriculture_probability_to_drop": 0.12,
+                "min_negative_probability_to_drop": 0.66,
+            }
+            return FilterResult(kept, 2, metadata)
+
+    build, records = a_build(tmp_path)
+    out = tmp_path / "publish"
+    out.mkdir()
+
+    package = package_dataset(
+        build,
+        out,
+        repo_id="me/x",
+        records=records,
+        sampled=2,
+        seed=3,
+        visual_filter=FakeVisualFilter(),
+    )
+
+    assert package.n_rows == 2
+    assert package.stats["images"]["dropped"]["visual_irrelevance"] == 2
+    assert package.stats["visual_filter"]["model_revision"] == "a" * 40
+    for split in ("conventional", "sustainable"):
+        path = next((out / "data").glob(f"{split}-*.parquet"))
+        from datasets import load_dataset
+
+        row = load_dataset(
+            "parquet",
+            data_files=str(path),
+            split="train",
+            cache_dir=str(tmp_path / "datasets-cache"),
+        )[0]
+        assert row["agriculture_photo_score"] == pytest.approx(0.9)
+        assert row["document_figure_score"] == pytest.approx(0.05)
+        assert row["unrelated_photo_score"] == pytest.approx(0.05)
 
 
 def test_packaging_is_reproducible(tmp_path):

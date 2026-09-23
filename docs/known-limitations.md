@@ -4,9 +4,11 @@
 
 The text gate and category assignment use exact English terms. A document can use an unexpected synonym and be missed, or mention agriculture while containing unrelated figures. The category split is document-level, not image-level.
 
-## Visual filtering is intentionally cheap
+## Visual filtering is conservative
 
-The pipeline removes obvious blank, degenerate, tiny, duplicate, and document-like page scans but does not understand scenes. Its page-scan check looks for a single page-proportioned grayscale raster with a paper-like background and dense edges. It can miss tiled or colour scans and may reject an unusually document-like full-page grayscale figure. Charts, maps, diagrams, screenshots, and unrelated photographs can survive if they are embedded in an accepted document. A future model-based filter would change the recall/diversity trade-off and is outside this release.
+Cheap pixel checks remove blank, near-solid, tiny, duplicate, and page-shaped grayscale scans. A pinned zero-shot CLIP model screens remaining images for farm photography versus document figures and unrelated photos. It is not calibrated for this dataset: confidence can be wrong, prompt wording matters, and the conservative threshold intentionally keeps uncertain examples. Some irrelevant graphics or page fragments can therefore remain, while unusual agricultural images may be lost. The per-row scores, model revision, prompt version, and drop counts make this trade-off visible.
+
+The committed image smoke-test examples are small and check broad photo-versus-noise behavior; they do not estimate coverage of every conventional or sustainable farming practice.
 
 ## Source availability
 

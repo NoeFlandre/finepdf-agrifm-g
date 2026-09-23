@@ -1,5 +1,8 @@
 # FinePDF Agriculture Splits Implementation Plan
 
+> Historical plan for the first agriculture-split release. The current image-level filtering
+> iteration is specified in [ADR-0004](../../adr/0004-image-level-relevance-filter.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (\`- [ ]\`) syntax for tracking.
 
 **Goal:** Replace the phenotype sample with a deterministic, caption-optional FinePDF dataset containing mutually exclusive \`conventional\` and \`sustainable\` agriculture image splits, built on Grid'5000 and published in place on Hugging Face.

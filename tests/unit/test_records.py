@@ -138,12 +138,15 @@ def test_a_malformed_payload_is_rejected():
 
 
 GOLDEN = (
-    '{"agriculture_split": "", "doc_id": "doc-1", "extraction_version": 7, '
-    '"images": [{"caption": "Figure 1. wheat leaf", "document_page_scan": false, '
+    '{"agriculture_split": "", "doc_id": "doc-1", "extraction_version": 8, '
+    '"images": [{"agriculture_photo_score": null, "caption": "Figure 1. wheat leaf", '
+    '"coarse_colour_bins": 0, "coarse_dominant_share": 0.0, '
+    '"document_figure_score": null, "document_page_scan": false, '
     '"dominant_colour_share": 0.02, '
     '"edge_density": 0.25, "format": "png", "greyscale": false, '
     '"height": 120, "n_colours": 8, "near_white_share": 0.02, "page": 0, '
-    '"path": "images/doc-1/000.png", "sha256": "' + "0" * 64 + '", "width": 100}], '
+    '"path": "images/doc-1/000.png", "sha256": "' + "0" * 64 + '", '
+    '"unrelated_photo_score": null, "width": 100}], '
     '"n_images": 1, "pdf_path": "pdfs/doc-1.pdf", '
     '"pdf_sha256": "' + "b" * 64 + '", '
     '"source_url": "https://example.org/a.pdf", "text": "hello"}'

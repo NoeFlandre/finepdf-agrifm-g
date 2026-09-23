@@ -25,6 +25,7 @@ class DropReason(StrEnum):
     FLAT_BACKGROUND = "flat_background"
     LOW_INFORMATION = "low_information"
     DOCUMENT_PAGE_SCAN = "document_page_scan"
+    VISUAL_IRRELEVANCE = "visual_irrelevance"
 
 
 def keep_reason(image: ImageRef) -> DropReason | None:
@@ -55,6 +56,8 @@ def _metrics(image: ImageRef) -> ImageMetrics:
         near_white_share=image.near_white_share,
         edge_density=image.edge_density,
         greyscale=image.greyscale,
+        coarse_colour_bins=image.coarse_colour_bins,
+        coarse_dominant_share=image.coarse_dominant_share,
     )
 
 

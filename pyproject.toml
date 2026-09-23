@@ -16,6 +16,20 @@ dependencies = [
     "huggingface-hub>=0.27",
 ]
 
+[project.optional-dependencies]
+vision = [
+    "torch>=2.6,<3",
+    "transformers>=5.0,<6",
+]
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 [project.scripts]
 agrifm-g = "agrifm_g.cli:main"
 
@@ -114,6 +128,7 @@ pytest_add_cli_args_test_selection = [
     "tests/unit/test_rows.py",
     "tests/unit/test_card.py",
     "tests/unit/test_appearance.py",
+    "tests/unit/test_image_relevance.py",
     "tests/unit/test_captions.py",
     "tests/unit/test_textgate.py",
 ]
