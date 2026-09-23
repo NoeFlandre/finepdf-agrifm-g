@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 
 import pytest
 from hypothesis import given
@@ -45,6 +46,20 @@ def test_n_images_is_derived_not_stored():
 
 def test_records_round_trip_through_json():
     record = a_record()
+    assert record_from_json(json.loads(record_to_json(record))) == record
+
+
+def test_document_page_scan_diagnostic_round_trips():
+    record = a_record(n_images=1)
+    marked = replace(record.images[0], document_page_scan=True)
+    record = DocumentRecord(
+        doc_id=record.doc_id,
+        source_url=record.source_url,
+        pdf_path=record.pdf_path,
+        pdf_sha256=record.pdf_sha256,
+        text=record.text,
+        images=(marked,),
+    )
     assert record_from_json(json.loads(record_to_json(record))) == record
 
 
@@ -123,8 +138,9 @@ def test_a_malformed_payload_is_rejected():
 
 
 GOLDEN = (
-    '{"agriculture_split": "", "doc_id": "doc-1", "extraction_version": 6, '
-    '"images": [{"caption": "Figure 1. wheat leaf", "dominant_colour_share": 0.02, '
+    '{"agriculture_split": "", "doc_id": "doc-1", "extraction_version": 7, '
+    '"images": [{"caption": "Figure 1. wheat leaf", "document_page_scan": false, '
+    '"dominant_colour_share": 0.02, '
     '"edge_density": 0.25, "format": "png", "greyscale": false, '
     '"height": 120, "n_colours": 8, "near_white_share": 0.02, "page": 0, '
     '"path": "images/doc-1/000.png", "sha256": "' + "0" * 64 + '", "width": 100}], '

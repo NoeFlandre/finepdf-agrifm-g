@@ -157,7 +157,8 @@ an empty string. The pipeline must never import \`contains_lexicon_word\` for ex
 
 - [x] **Step 4: Replace strict appearance rules with obvious-degenerate rules.**
 
-Keep dimension and aspect-ratio checks, exact hash deduplication, and only these appearance rules:
+Keep dimension and aspect-ratio checks, exact hash deduplication, blank/flat checks, and two
+combined appearance rules:
 
 ~~~python
 if metrics.near_white_share > 0.98:
@@ -166,11 +167,20 @@ if metrics.dominant_colour_share > 0.98:
     return AppearanceRule.FLAT_BACKGROUND
 if metrics.n_colours <= 1:
     return AppearanceRule.FEW_COLOURS
+if (
+    metrics.n_colours <= 64
+    and metrics.dominant_colour_share >= 0.75
+    and metrics.edge_density <= 0.10
+):
+    return AppearanceRule.LOW_INFORMATION
 ~~~
 
-Remove edge-density, greyscale texture, line-art, and the old 8,000-colour threshold. Keep the
-metrics in records for diagnostics. Update \`DropReason\` and tests so valid low-texture, greyscale,
-diagram-like, and low-colour-but-not-flat images survive.
+Also mark a single grayscale embedded raster as a document-page scan when its aspect ratio is
+within 3% of the page, its near-white share is at least 0.45, and its edge density is at least
+0.18. Reject only that combined profile. Do not apply a general edge-density, greyscale texture,
+line-art, or colour-count threshold. Keep full-page colour photos eligible and retain metrics for
+diagnostics. Update \`DropReason\`, bump the extraction version, and test both supplied noise
+profiles plus preserved full-page photos and ordinary low-colour figures.
 
 - [x] **Step 5: Run all extraction/appearance/record tests, then commit.**
 

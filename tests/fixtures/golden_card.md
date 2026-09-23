@@ -71,7 +71,7 @@ dataset["sustainable"][0]["image"]  # PIL.Image
 | `image_sha256` | string | content hash, unique across the published rows |
 | `image_path` | string | path in the temporary build directory |
 | `n_colours` | int32 | distinct colours measured on a thumbnail |
-| `edge_density` | float32 | diagnostic edge share; not a semantic filter |
+| `edge_density` | float32 | thumbnail edge share, used only by narrow noise checks |
 | `caption` | string | optional PDF caption when one was detected |
 | `source_url` | string | original PDF URL for provenance |
 | `pdf_sha256` | string | hash of the retrieved PDF |
@@ -84,7 +84,7 @@ dataset["sustainable"][0]["image"]  # PIL.Image
 - The input is FinePDF's English `eng_Latn` text. A broad agriculture lexicon keeps documents worth downloading.
 - Each passing document is assigned to the category with more exact matches from the extended conventional and sustainable agriculture lexicons. Ties and documents without category evidence are discarded. An image is never duplicated across splits.
 - All usable embedded raster images from an accepted document are considered; captions are optional metadata and never a filter.
-- Cheap sanity filters remove invalid, tiny, single-colour, nearly blank, overwhelmingly flat-colour, extreme-aspect-ratio, and duplicate images. Colour counts and edge density remain diagnostic fields, not semantic filters.
+- Cheap sanity filters remove invalid, tiny, single-colour, nearly blank, overwhelmingly flat-colour, extreme-aspect-ratio, and duplicate images. Page-shaped grayscale scans with paper-like backgrounds and dense edges, plus nearly uniform low-colour placeholders, are also removed.
 
 ## Reproduce and limitations
 
@@ -97,7 +97,7 @@ uv run python -m scripts.grid5000 fetch --run-id <run-id>
 ~~~
 
 - 40% of sampled documents were retrieved and parsed in this run; FinePDF URLs date from 2023 and many are unavailable.
-- Only embedded raster images are extracted. Vector figures, OCR text and full-page renderings are out of scope. Document-level classification can leave unrelated figures in an otherwise relevant paper; this is intentional for recall and diversity.
+- Only embedded raster images are extracted. Vector figures, OCR-only figures and linked images are out of scope. The conservative page-scan check can miss tiled or colour scans; document-level classification can leave unrelated figures in an otherwise relevant paper; this is intentional for recall and diversity.
 
 ## Citation
 

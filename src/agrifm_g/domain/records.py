@@ -6,7 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-EXTRACTION_VERSION = 6
+EXTRACTION_VERSION = 7
 """Bumped whenever extraction changes in a way that alters stored bytes."""
 
 
@@ -25,6 +25,7 @@ class ImageRef:
     near_white_share: float
     edge_density: float
     greyscale: bool = False
+    document_page_scan: bool = False
     caption: str = ""
 
 
@@ -74,6 +75,7 @@ def record_to_json(record: DocumentRecord) -> str:
                 "near_white_share": round(image.near_white_share, 5),
                 "edge_density": round(image.edge_density, 5),
                 "greyscale": image.greyscale,
+                "document_page_scan": image.document_page_scan,
                 "caption": image.caption,
             }
             for image in record.images
@@ -106,6 +108,7 @@ def record_from_json(payload: dict[str, Any]) -> DocumentRecord:
                     near_white_share=image["near_white_share"],
                     edge_density=image["edge_density"],
                     greyscale=image.get("greyscale", False),
+                    document_page_scan=image.get("document_page_scan", False),
                     caption=image.get("caption", ""),
                 )
                 for image in payload["images"]

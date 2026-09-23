@@ -38,11 +38,11 @@ def test_config_round_trips_as_sorted_json():
     payload = json.loads(config.to_json())
     assert payload["shards"] == [0, 2]
     assert payload["row_groups"] == [0, 1]
-    assert payload["pipeline"] == "agriculture-splits-v1"
+    assert payload["pipeline"] == "agriculture-splits-v2"
 
 
 def test_pipeline_profile_changes_the_run_identity():
-    agriculture = RunConfig(commit="a" * 40, pipeline="agriculture-splits-v1")
+    agriculture = RunConfig(commit="a" * 40, pipeline="agriculture-splits-v2")
     other = RunConfig(commit="a" * 40, pipeline="other-profile")
 
     assert agriculture.run_id != other.run_id

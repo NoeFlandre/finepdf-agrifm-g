@@ -23,12 +23,16 @@ class DropReason(StrEnum):
     FEW_COLOURS = "few_colours"
     MOSTLY_BLANK = "mostly_blank"
     FLAT_BACKGROUND = "flat_background"
+    LOW_INFORMATION = "low_information"
+    DOCUMENT_PAGE_SCAN = "document_page_scan"
 
 
 def keep_reason(image: ImageRef) -> DropReason | None:
     """Return why this image should be dropped, or None to keep it."""
     if image.n_colours <= 1:
         return DropReason.SINGLE_COLOUR
+    if image.document_page_scan:
+        return DropReason.DOCUMENT_PAGE_SCAN
     longest, shortest = max(image.width, image.height), min(image.width, image.height)
     if shortest == 0 or longest / shortest > MAX_ASPECT_RATIO:
         return DropReason.ASPECT_RATIO

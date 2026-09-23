@@ -103,7 +103,10 @@ def test_the_published_rows_load_back_with_decoded_images(tmp_path):
     out.mkdir()
     package_dataset(build, out, repo_id="me/x", records=records, sampled=2, seed=3)
     dataset = load_dataset(
-        "parquet", data_files=str(out / "data" / "conventional-*.parquet"), split="train"
+        "parquet",
+        data_files=str(out / "data" / "conventional-*.parquet"),
+        split="train",
+        cache_dir=str(tmp_path / "hf-cache"),
     )
     row = dataset[0]
     assert row["image"].size == (row["width"], row["height"])

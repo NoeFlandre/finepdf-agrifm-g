@@ -1,7 +1,11 @@
-import pytest
-from PIL import Image
+import io
 
+import pytest
+from PIL import Image, ImageDraw
+
+from agrifm_g.adapters.appearance import measure
 from agrifm_g.adapters.extraction import extract_images
+from agrifm_g.domain.appearance import AppearanceRule, rejection_rule
 
 
 def test_a_single_page_pdf_yields_its_image(fixtures):
@@ -77,6 +81,65 @@ def test_captionless_images_are_retained(monkeypatch):
     accepted = extract_images(b"pdf")
     assert len(accepted) == 1
     assert accepted[0].caption == ""
+
+
+def test_a_page_sized_document_raster_is_marked_for_filtering():
+    scan = Image.new("RGB", (400, 566), "white")
+    draw = ImageDraw.Draw(scan)
+    for y in range(50, 520, 24):
+        draw.line((25, y, 375, y), fill="black", width=1)
+    for x in (25, 90, 170, 260, 375):
+        draw.line((x, 50, x, 520), fill="black", width=1)
+
+    pdf = io.BytesIO()
+    scan.save(pdf, format="PDF", resolution=72)
+    extracted = extract_images(pdf.getvalue())
+    assert len(extracted) == 1
+    assert extracted[0].document_page_scan is True
+
+
+def test_a_full_page_colour_photo_is_not_marked_as_a_document_scan():
+    photo = Image.new("RGB", (400, 566), "#6b8e23")
+    draw = ImageDraw.Draw(photo)
+    for y in range(0, photo.height, 12):
+        draw.rectangle(
+            (0, y, photo.width, y + 11),
+            fill=(70 + y % 70, 90 + y % 80, 30 + y % 60),
+        )
+
+    pdf = io.BytesIO()
+    photo.save(pdf, format="PDF", resolution=72)
+    extracted = extract_images(pdf.getvalue())
+    assert len(extracted) == 1
+    assert extracted[0].document_page_scan is False
+
+
+def test_full_raster_colour_count_is_not_recomputed_before_thumbnail(monkeypatch):
+    image = Image.new("RGB", (512, 512), "blue")
+    pdf = io.BytesIO()
+    image.save(pdf, format="PDF", resolution=72)
+
+    measured_sizes = []
+    original_getcolors = Image.Image.getcolors
+
+    def track_getcolors(instance, maxcolors=256):
+        measured_sizes.append(instance.size)
+        return original_getcolors(instance, maxcolors=maxcolors)
+
+    monkeypatch.setattr(Image.Image, "getcolors", track_getcolors)
+
+    extracted = extract_images(pdf.getvalue())
+    assert len(extracted) == 1
+    assert measured_sizes == [(256, 256)]
+
+
+def test_a_nearly_solid_black_placeholder_is_rejected_from_its_pixels():
+    placeholder = Image.new("RGB", (133, 119), "white")
+    ImageDraw.Draw(placeholder).rounded_rectangle((2, 2, 130, 116), radius=18, fill="black")
+    png = io.BytesIO()
+    placeholder.save(png, format="PNG")
+
+    assert rejection_rule(measure(png.getvalue())) is AppearanceRule.LOW_INFORMATION
 
 
 def test_caption_terms_are_not_an_extraction_filter():

@@ -15,7 +15,7 @@ SCHEMA_ROWS = (
     ("image_sha256", "string", "content hash, unique across the published rows"),
     ("image_path", "string", "path in the temporary build directory"),
     ("n_colours", "int32", "distinct colours measured on a thumbnail"),
-    ("edge_density", "float32", "diagnostic edge share; not a semantic filter"),
+    ("edge_density", "float32", "thumbnail edge share, used only by narrow noise checks"),
     ("caption", "string", "optional PDF caption when one was detected"),
     ("source_url", "string", "original PDF URL for provenance"),
     ("pdf_sha256", "string", "hash of the retrieved PDF"),
@@ -66,8 +66,8 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             " captions are optional metadata and never a filter.",
             "- Cheap sanity filters remove invalid, tiny, single-colour, nearly blank,"
             " overwhelmingly flat-colour, extreme-aspect-ratio, and duplicate images."
-            " Colour counts and edge density"
-            " remain diagnostic fields, not semantic filters.",
+            " Page-shaped grayscale scans with paper-like backgrounds and dense edges,"
+            " plus nearly uniform low-colour placeholders, are also removed.",
             "",
             "## Reproduce and limitations",
             "",
@@ -84,9 +84,9 @@ def render_card(*, repo_id: str, stats: dict[str, Any], n_rows: int, n_shards: i
             "",
             f"- {documents['fetch_yield']:.0%} of sampled documents were retrieved and parsed in"
             " this run; FinePDF URLs date from 2023 and many are unavailable.",
-            "- Only embedded raster images are extracted. Vector figures, OCR text and full-page"
-            " renderings are out of scope. Document-level classification can leave unrelated"
-            " figures"
+            "- Only embedded raster images are extracted. Vector figures, OCR-only figures and"
+            " linked images are out of scope. The conservative page-scan check can miss tiled or"
+            " colour scans; document-level classification can leave unrelated figures"
             " in an otherwise relevant paper; this is intentional for recall and diversity.",
             "",
             "## Citation",

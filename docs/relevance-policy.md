@@ -19,7 +19,11 @@ The pipeline drops only obvious failures:
 - invalid or undecodable images;
 - images below the minimum usable size;
 - single-colour, nearly blank, or overwhelmingly flat-colour images;
+- nearly uniform low-colour placeholders with very little edge detail;
+- a single page-shaped grayscale raster with a paper-like background and dense edges;
 - extreme aspect ratios;
 - exact duplicate image bytes.
 
-There is no caption requirement. Captions are retained when extraction finds them, and captionless images remain eligible. There is no semantic classifier, OCR gate, texture threshold, or line-art rule.
+There is no caption requirement. Captions are retained when extraction finds them, and captionless images remain eligible. There is no semantic classifier, OCR gate, general texture threshold, or line-art rule.
+
+The page-scan check is deliberately narrow: full-page colour photos and figures remain eligible. It can miss scans split across multiple raster objects or colour scans; it may also reject a page-sized grayscale figure that looks document-like.

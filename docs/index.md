@@ -8,9 +8,9 @@ AGRIFM-G is a reproducible, fully automatic pipeline that turns English FinePDF 
 
 `sustainable` covers sustainable and alternative agriculture: permaculture, agroecology, agroforestry, hydroponics, aquaponics, organic and regenerative farming, conservation practices, composting, and related systems.
 
-Documents are classified from their text with extended English lexicons. A tie or missing category evidence is discarded, so no image is present in both splits. Every usable embedded raster image from an accepted document is retained; captions may be stored but are not required.
+Documents are classified from their text with extended English lexicons. A tie or missing category evidence is discarded, so no image is present in both splits. Usable embedded raster images are considered without requiring captions, then filtered by the visual sanity checks below.
 
-The only visual exclusions are cheap sanity checks for invalid, tiny, single-colour, nearly blank, overwhelmingly flat-colour, extreme-aspect-ratio, or exact-duplicate images. The pipeline does not claim semantic image understanding.
+Visual checks remove invalid, tiny, single-colour, nearly blank, overwhelmingly flat-colour, near-uniform placeholders, dense page-shaped grayscale scans, images with extreme aspect ratios, or duplicate bytes. Full-page colour photos remain eligible; the pipeline does not claim semantic image understanding.
 
 Heavy scaled extraction runs on Grid’5000 with resumable row-group checkpoints. The local machine handles orchestration and final artifact verification.
 

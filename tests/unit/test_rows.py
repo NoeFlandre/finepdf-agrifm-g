@@ -1,4 +1,4 @@
-from agrifm_g.domain.records import DocumentRecord, ImageRef
+from agrifm_g.domain.records import EXTRACTION_VERSION, DocumentRecord, ImageRef
 from agrifm_g.domain.rows import image_rows
 
 
@@ -68,5 +68,5 @@ def test_a_row_carries_every_declared_column_with_the_right_value():
         "pdf_sha256": "b" * 64,
         "text": "hello",
         "n_images_in_doc": 2,
-        "extraction_version": 6,
+        "extraction_version": EXTRACTION_VERSION,
     }

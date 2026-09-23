@@ -6,7 +6,7 @@ The text gate and category assignment use exact English terms. A document can us
 
 ## Visual filtering is intentionally cheap
 
-The pipeline removes obvious blank, degenerate, tiny, or duplicate images but does not understand scenes. Charts, maps, diagrams, screenshots, and unrelated photographs can survive if they are embedded in an accepted document. A future model-based filter would change the recall/diversity trade-off and is outside this release.
+The pipeline removes obvious blank, degenerate, tiny, duplicate, and document-like page scans but does not understand scenes. Its page-scan check looks for a single page-proportioned grayscale raster with a paper-like background and dense edges. It can miss tiled or colour scans and may reject an unusually document-like full-page grayscale figure. Charts, maps, diagrams, screenshots, and unrelated photographs can survive if they are embedded in an accepted document. A future model-based filter would change the recall/diversity trade-off and is outside this release.
 
 ## Source availability
 

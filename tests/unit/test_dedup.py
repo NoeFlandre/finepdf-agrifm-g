@@ -5,7 +5,16 @@ from agrifm_g.domain.dedup import DropReason, deduplicate, keep_reason
 from agrifm_g.domain.records import DocumentRecord, ImageRef
 
 
-def image(path="images/d/000.png", sha="a" * 64, width=100, height=100, colours=30000, **extra):
+def image(
+    path="images/d/000.png",
+    sha="a" * 64,
+    width=100,
+    height=100,
+    colours=30000,
+    greyscale=False,
+    document_page_scan=False,
+    **extra,
+):
     """A photographic image by default, so appearance rules do not fire unless asked."""
     fields: dict[str, float] = {
         "dominant_colour_share": 0.02,
@@ -24,6 +33,8 @@ def image(path="images/d/000.png", sha="a" * 64, width=100, height=100, colours=
         dominant_colour_share=fields["dominant_colour_share"],
         near_white_share=fields["near_white_share"],
         edge_density=fields["edge_density"],
+        greyscale=greyscale,
+        document_page_scan=document_page_scan,
     )
 
 
@@ -93,6 +104,21 @@ def test_a_low_colour_graphic_is_not_dropped_without_flatness_evidence():
 
 def test_a_flat_colour_image_is_dropped_on_appearance():
     assert keep_reason(image(dominant_colour_share=0.99)) is DropReason.FLAT_BACKGROUND
+
+
+def test_a_nearly_uniform_placeholder_is_dropped():
+    placeholder = image(
+        colours=50,
+        dominant_colour_share=0.86453,
+        near_white_share=0.05765,
+        edge_density=0.06195,
+        greyscale=True,
+    )
+    assert keep_reason(placeholder) is DropReason.LOW_INFORMATION
+
+
+def test_a_document_page_scan_is_dropped():
+    assert keep_reason(image(document_page_scan=True)) is DropReason.DOCUMENT_PAGE_SCAN
 
 
 def test_a_blank_scan_is_dropped_on_appearance():

@@ -12,6 +12,7 @@ from pypdf._page import ImageFile
 from pypdf.errors import DependencyError, PyPdfError
 
 from agrifm_g.adapters.appearance import measure
+from agrifm_g.domain.appearance import looks_like_document_page_scan
 from agrifm_g.domain.captions import captions_for_images, extract_caption_blocks
 from agrifm_g.domain.normalisation import is_usable_image
 
@@ -40,6 +41,7 @@ class ExtractedImage:
     near_white_share: float
     edge_density: float
     greyscale: bool = False
+    document_page_scan: bool = False
     caption: str = ""
 
 
@@ -63,7 +65,14 @@ def _page_images(
         embedded = list(page.images)
     except Exception:  # noqa: BLE001 - a broken page must not sink the document
         return []
-    candidates = _extract_page_images(page_number, embedded)
+    page_width, page_height = _page_size(page)
+    candidates = _extract_page_images(
+        page_number,
+        embedded,
+        page_width=page_width,
+        page_height=page_height,
+        page_image_count=len(embedded),
+    )
     captions = captions_for_images(extract_caption_blocks(_page_text(page)), len(candidates))
     return _captioned_images(candidates, captions)
 
@@ -75,6 +84,17 @@ def _page_text(page: PageObject) -> str:
         return ""
 
 
+def _page_size(page: PageObject) -> tuple[float, float]:
+    """Return the media-box dimensions, accounting for PDF page rotation."""
+    try:
+        width, height = float(page.mediabox.width), float(page.mediabox.height)
+        if int(getattr(page, "rotation", 0) or 0) % 180:
+            return height, width
+        return width, height
+    except (AttributeError, TypeError, ValueError):
+        return 0.0, 0.0
+
+
 def _captioned_images(
     candidates: list[ExtractedImage],
     captions: tuple[str, ...],
@@ -82,15 +102,30 @@ def _captioned_images(
     return [replace(image, caption=captions[index]) for index, image in enumerate(candidates)]
 
 
-def _extract_page_images(page_number: int, embedded: list[ImageFile]) -> list[ExtractedImage]:
+def _extract_page_images(
+    page_number: int,
+    embedded: list[ImageFile],
+    *,
+    page_width: float,
+    page_height: float,
+    page_image_count: int,
+) -> list[ExtractedImage]:
     extracted = []
     for item in embedded:
         encoded = _as_png(item)
         if encoded is None:
             continue
-        width, height, _, data = encoded
+        width, height, data = encoded
         if is_usable_image(width=width, height=height, n_bytes=len(data)):
             metrics = measure(data)
+            document_page_scan = looks_like_document_page_scan(
+                metrics,
+                image_width=width,
+                image_height=height,
+                page_width=page_width,
+                page_height=page_height,
+                page_image_count=page_image_count,
+            )
             extracted.append(
                 ExtractedImage(
                     page=page_number,
@@ -104,13 +139,14 @@ def _extract_page_images(page_number: int, embedded: list[ImageFile]) -> list[Ex
                     near_white_share=metrics.near_white_share,
                     edge_density=metrics.edge_density,
                     greyscale=metrics.greyscale,
+                    document_page_scan=document_page_scan,
                 )
             )
     return extracted
 
 
-def _as_png(item: ImageFile) -> tuple[int, int, int, bytes] | None:
-    """Re-encode to PNG, and count colours so flat filler can be recognised later."""
+def _as_png(item: ImageFile) -> tuple[int, int, bytes] | None:
+    """Re-encode one PDF raster; appearance metrics are measured on a small thumbnail."""
     # pypdf types this as Optional[PIL.Image]; the stub resolves to None for `ty`.
     image: Any = item.image
     if image is None:
@@ -121,5 +157,4 @@ def _as_png(item: ImageFile) -> tuple[int, int, int, bytes] | None:
         rgb.save(buffer, format="PNG", optimize=False)
     except (OSError, ValueError):  # unsupported filters and colour spaces are skipped
         return None
-    colours = rgb.getcolors(maxcolors=256)
-    return image.width, image.height, len(colours) if colours else 257, buffer.getvalue()
+    return image.width, image.height, buffer.getvalue()

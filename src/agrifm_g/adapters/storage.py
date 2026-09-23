@@ -86,6 +86,7 @@ def _write_image(out_dir: Path, doc_id: str, position: int, image: ExtractedImag
         near_white_share=round(image.near_white_share, 5),
         edge_density=round(image.edge_density, 5),
         greyscale=image.greyscale,
+        document_page_scan=image.document_page_scan,
         caption=image.caption,
     )
 

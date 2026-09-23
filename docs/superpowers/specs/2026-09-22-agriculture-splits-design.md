@@ -38,12 +38,16 @@ caption. Retain only cheap, obvious sanity filters:
 
 - valid decodable image with both sides at least 32 pixels;
 - reject single-colour, nearly blank, or overwhelmingly flat-colour images;
+- reject a single raster whose aspect ratio matches the PDF page within 3% only when it is
+  grayscale, at least 45% near-white, and has at least 18% edge density;
+- reject low-information placeholders only when there are at most 64 thumbnail colours, one
+  colour covers at least 75% of pixels, and edge density is at most 10%;
 - reject extreme separator-like aspect ratios;
 - remove exact duplicate image hashes.
 
-Remove phenotype-specific colour counts, texture thresholds, edge-density thresholds, line-art
-rules, and any requirement that an image be a photograph or have a caption. Appearance metrics can
-still be stored for diagnostics, but they are not used as semantic rules.
+Do not apply a general colour-count, texture, or line-art threshold, and do not require an image to
+be a photograph or have a caption. The two combined noise checks above are deliberately narrow;
+full-page colour photos and figures remain eligible. Appearance metrics are not semantic rules.
 
 ### One-pass two-split packaging
 

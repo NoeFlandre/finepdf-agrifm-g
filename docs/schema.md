@@ -33,6 +33,6 @@ dataset["sustainable"][0]
 
 The broad lexicon is used before fetching to avoid downloading clearly unrelated documents. A passing document is assigned to the category with the stronger exact-match score from the extended conventional and sustainable lexicons. Ties and documents with no category evidence are dropped. All embedded images from accepted documents are then considered.
 
-Visual sanity checks remove invalid or tiny images, single-colour and nearly blank images, overwhelmingly flat-colour images, extreme aspect ratios, and exact duplicates. Colour count and edge density remain diagnostic fields; they are not topical classifiers.
+Visual checks remove invalid or tiny images, single-colour and nearly blank images, overwhelmingly flat-colour images, near-uniform low-colour placeholders, dense page-shaped grayscale document scans, extreme aspect ratios, and exact duplicates. A full-page colour photograph or figure remains eligible. These are narrow noise checks, not topical image classifiers.
 
 The PDFs themselves are not redistributed. URLs and hashes preserve provenance, but source availability and licensing are not guaranteed.

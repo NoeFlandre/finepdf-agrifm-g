@@ -6,18 +6,14 @@ Install the pinned environment:
 uv sync --all-groups
 ```
 
-## Small build
+## Local checks
 
-The committed manifest fixes the source sample:
+The local smoke test uses only the committed PDF fixture and does not fetch FinePDF documents;
+full builds run on Grid’5000:
 
 ```bash
-uv run agrifm-g build --manifest data/sample_manifest.json --out out/dataset
-uv run agrifm-g verify --dataset out/dataset
-uv run agrifm-g package --dataset out/dataset --out out/publish \
-  --repo NoeFlandre/finepdf-agrifm-g
+make smoke-offline
 ```
-
-`build` applies the broad agriculture text gate and the two category lexicons. `package` writes `conventional-*.parquet` and `sustainable-*.parquet`, plus `stats.json` and the generated card.
 
 ## Scaled Grid’5000 build
 

@@ -27,7 +27,7 @@ DEFAULT_WORKERS = 16
 DEFAULT_CORES = 16
 DEFAULT_MEMORY_GB = 32
 DEFAULT_WALLTIME = "04:00:00"
-DEFAULT_PIPELINE = "agriculture-splits-v1"
+DEFAULT_PIPELINE = "agriculture-splits-v2"
 UV_VERSION = "0.11.16"
 
 _COMMIT = re.compile(r"^[0-9a-f]{40}$")

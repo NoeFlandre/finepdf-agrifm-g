@@ -2,6 +2,8 @@ site_name: AGRIFM-G
 site_description: A minimal, reproducible FinePDF-to-dataset pipeline for AGRIFM-G.
 repo_url: https://github.com/NoeFlandre/finepdf-agrifm-g
 docs_dir: docs
+exclude_docs: |
+  /superpowers/
 nav:
   - Overview: index.md
   - Quickstart: quickstart.md

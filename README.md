@@ -6,15 +6,14 @@ The published dataset has two mutually exclusive splits:
 - `conventional`: tractors, machinery, silos, farm buildings, field operations, and other conventional or industrial agriculture scenes.
 - `sustainable`: permaculture, agroecology, agroforestry, hydroponics, organic and regenerative practices, and related sustainable-farm scenes.
 
-The pipeline is fully automatic. It applies a broad text gate, classifies each accepted document with extended category lexicons, extracts every usable embedded raster image, and applies only cheap visual sanity checks. Captions are optional metadata and never a filter.
+The pipeline is fully automatic. It applies a broad text gate, classifies each accepted document with extended category lexicons, and extracts embedded raster images. Cheap visual checks remove obvious placeholders and dense page-shaped grayscale scans while keeping full-page colour photos eligible. Captions are optional metadata and never a filter.
 
-## Run locally on a small sample
+## Local checks
+
+Local PDF work is limited to the fixture-only smoke test; full builds run on Grid’5000:
 
 ```bash
-uv sync --all-groups
-uv run agrifm-g build --manifest data/sample_manifest.json --out out/dataset
-uv run agrifm-g verify --dataset out/dataset
-uv run agrifm-g package --dataset out/dataset --out out/publish --repo <hf-repo>
+make smoke-offline
 ```
 
 ## Run the scaled build on Grid’5000
