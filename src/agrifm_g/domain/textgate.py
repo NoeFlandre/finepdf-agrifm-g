@@ -32,16 +32,25 @@ def agronomy_score(text: str, terms: Collection[str]) -> float:
 def lexicon_hits(text: str, terms: Collection[str]) -> int:
     """Count exact one- and multi-word lexicon matches in normalized text."""
     tokens = WORD.findall(text.lower())
+    by_length = _group_terms_by_length(terms)
+    return sum(
+        _count_length_matches(tokens, length, phrases) for length, phrases in by_length.items()
+    )
+
+
+def _group_terms_by_length(terms: Collection[str]) -> dict[int, set[tuple[str, ...]]]:
     by_length: dict[int, set[tuple[str, ...]]] = defaultdict(set)
     for term in terms:
         normalized = tuple(WORD.findall(term.lower()))
         if normalized:
             by_length[len(normalized)].add(normalized)
+    return by_length
+
+
+def _count_length_matches(tokens: list[str], length: int, phrases: set[tuple[str, ...]]) -> int:
     return sum(
-        1
-        for start in range(len(tokens))
-        for length, phrases in by_length.items()
-        if start + length <= len(tokens) and tuple(tokens[start : start + length]) in phrases
+        tuple(tokens[start : start + length]) in phrases
+        for start in range(max(0, len(tokens) - length + 1))
     )
 
 

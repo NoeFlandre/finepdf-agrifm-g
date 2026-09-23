@@ -48,13 +48,17 @@ def rejection_rule(metrics: ImageMetrics) -> AppearanceRule | None:
         return AppearanceRule.MOSTLY_BLANK
     if metrics.dominant_colour_share > MAX_DOMINANT_COLOUR_SHARE:
         return AppearanceRule.FLAT_BACKGROUND
-    if (
+    if _is_low_information(metrics):
+        return AppearanceRule.LOW_INFORMATION
+    return None
+
+
+def _is_low_information(metrics: ImageMetrics) -> bool:
+    return (
         metrics.n_colours <= MAX_LOW_INFORMATION_COLOURS
         and metrics.dominant_colour_share >= MIN_LOW_INFORMATION_DOMINANT_SHARE
         and metrics.edge_density <= MAX_LOW_INFORMATION_EDGE_DENSITY
-    ):
-        return AppearanceRule.LOW_INFORMATION
-    return None
+    )
 
 
 def looks_like_document_page_scan(
@@ -67,14 +71,38 @@ def looks_like_document_page_scan(
     page_image_count: int,
 ) -> bool:
     """Match the conservative visual profile of a grayscale document-page scan."""
-    if (
-        page_image_count != 1
-        or min(image_width, image_height, page_width, page_height) <= 0
-        or not metrics.greyscale
-        or metrics.near_white_share < MIN_DOCUMENT_PAGE_NEAR_WHITE_SHARE
-        or metrics.edge_density < MIN_DOCUMENT_PAGE_EDGE_DENSITY
-    ):
+    if page_image_count != 1:
         return False
+    if not _has_positive_dimensions(image_width, image_height, page_width, page_height):
+        return False
+    if not _has_document_scan_appearance(metrics):
+        return False
+    return _page_aspects_match(image_width, image_height, page_width, page_height)
+
+
+def _has_positive_dimensions(
+    image_width: int,
+    image_height: int,
+    page_width: float,
+    page_height: float,
+) -> bool:
+    return min(image_width, image_height, page_width, page_height) > 0
+
+
+def _has_document_scan_appearance(metrics: ImageMetrics) -> bool:
+    return (
+        metrics.greyscale
+        and metrics.near_white_share >= MIN_DOCUMENT_PAGE_NEAR_WHITE_SHARE
+        and metrics.edge_density >= MIN_DOCUMENT_PAGE_EDGE_DENSITY
+    )
+
+
+def _page_aspects_match(
+    image_width: int,
+    image_height: int,
+    page_width: float,
+    page_height: float,
+) -> bool:
     image_ratio = image_width / image_height
     page_ratio = page_width / page_height
     aspect_similarity = min(image_ratio, page_ratio) / max(image_ratio, page_ratio)

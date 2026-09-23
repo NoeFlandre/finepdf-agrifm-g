@@ -33,9 +33,17 @@ def keep_reason(image: ImageRef) -> DropReason | None:
         return DropReason.SINGLE_COLOUR
     if image.document_page_scan:
         return DropReason.DOCUMENT_PAGE_SCAN
-    longest, shortest = max(image.width, image.height), min(image.width, image.height)
-    if shortest == 0 or longest / shortest > MAX_ASPECT_RATIO:
+    if _has_extreme_aspect_ratio(image.width, image.height):
         return DropReason.ASPECT_RATIO
+    return _appearance_reason(image)
+
+
+def _has_extreme_aspect_ratio(width: int, height: int) -> bool:
+    longest, shortest = max(width, height), min(width, height)
+    return shortest == 0 or longest / shortest > MAX_ASPECT_RATIO
+
+
+def _appearance_reason(image: ImageRef) -> DropReason | None:
     appearance = rejection_rule(_metrics(image))
     return DropReason(appearance.value) if appearance else None
 

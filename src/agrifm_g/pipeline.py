@@ -153,6 +153,32 @@ def build_with_outcome(
     everything, so an empty lexicon means "no gate" rather than "no documents".
     """
     rows = source.rows(manifest.indices)
+    wanted, gated_out, ambiguous_out = _select_rows(
+        rows,
+        terms=terms,
+        threshold=threshold,
+        conventional_terms=conventional_terms,
+        sustainable_terms=sustainable_terms,
+    )
+    payloads = [
+        payload for payload in _payloads(wanted, fetcher, workers=workers) if payload is not None
+    ]
+    return BuildOutcome(
+        records=write_dataset(out_dir, payloads),
+        sampled=len(rows),
+        gated_out=gated_out,
+        ambiguous_out=ambiguous_out,
+    )
+
+
+def _select_rows(
+    rows: list[FinePdfRow],
+    *,
+    terms: Collection[str],
+    threshold: float,
+    conventional_terms: Collection[str] | None,
+    sustainable_terms: Collection[str] | None,
+) -> tuple[list[tuple[FinePdfRow, str]], int, int]:
     wanted: list[tuple[FinePdfRow, str]] = []
     gated_out = 0
     ambiguous_out = 0
@@ -165,15 +191,7 @@ def build_with_outcome(
             ambiguous_out += 1
             continue
         wanted.append((row, split.value if split else ""))
-    payloads = [
-        payload for payload in _payloads(wanted, fetcher, workers=workers) if payload is not None
-    ]
-    return BuildOutcome(
-        records=write_dataset(out_dir, payloads),
-        sampled=len(rows),
-        gated_out=gated_out,
-        ambiguous_out=ambiguous_out,
-    )
+    return wanted, gated_out, ambiguous_out
 
 
 def _payloads(

@@ -129,3 +129,15 @@ def test_page_scan_detector_preserves_photos_and_non_page_figures():
         page_height=842,
         page_image_count=2,
     )
+
+
+def test_page_scan_detector_rejects_invalid_geometry_without_dividing():
+    scan = ImageMetrics(2_416, 0.5, 0.71, 0.26, True)
+    assert not looks_like_document_page_scan(
+        scan,
+        image_width=0,
+        image_height=2338,
+        page_width=595,
+        page_height=842,
+        page_image_count=1,
+    )
