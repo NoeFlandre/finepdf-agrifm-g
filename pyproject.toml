@@ -131,4 +131,5 @@ pytest_add_cli_args_test_selection = [
     "tests/unit/test_image_relevance.py",
     "tests/unit/test_captions.py",
     "tests/unit/test_textgate.py",
+    "tests/unit/test_agriculture.py",
 ]

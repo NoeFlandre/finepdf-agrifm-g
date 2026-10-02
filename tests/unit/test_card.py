@@ -65,3 +65,51 @@ def test_the_size_category_follows_the_row_count():
     assert "1K<n<10K" in render_card(repo_id="r", stats=stats, n_rows=1000, n_shards=1)
     assert "10K<n<100K" in render_card(repo_id="r", stats=stats, n_rows=10_000, n_shards=1)
     assert "100K<n<1M" in render_card(repo_id="r", stats=stats, n_rows=100_000, n_shards=1)
+
+
+def test_the_card_states_when_no_visual_filter_was_applied():
+    card = a_card()
+    assert "- This packaging run did not apply an image-level semantic filter.\n" in card
+    assert "zero-shot CLIP" not in card
+
+
+def test_the_card_describes_the_visual_filter_exactly():
+    stats = build_stats(
+        [],
+        sampled=10,
+        dropped={},
+        seed=42,
+        source_shards=3,
+        visual_filter={
+            "model_id": "org/clip",
+            "model_revision": "abc123",
+            "prompt_version": "p-v9",
+            "max_agriculture_probability_to_drop": 0.05,
+            "min_negative_probability_to_drop": 0.8,
+        },
+    )
+    card = render_card(repo_id="me/thing", stats=stats, n_rows=12, n_shards=1)
+
+    assert "did not apply" not in card
+    assert (
+        "- A pinned, zero-shot CLIP screen compares agricultural photos with document figures"
+        " and unrelated photos. It does not read captions or document text.\n"
+    ) in card
+    assert "- Model: `org/clip` at revision `abc123`; prompt set `p-v9`.\n" in card
+    assert (
+        "- Only high-confidence negatives are removed: agricultural-photo score at or below"
+        " 0.05 and a negative-class score at or above 0.80. Borderline"
+        " predictions stay in the dataset to preserve diversity.\n"
+    ) in card
+
+
+def test_the_size_category_changes_exactly_at_each_ceiling():
+    from agrifm_g.domain.card import _size_category
+
+    assert _size_category(0) == "n<1K"
+    assert _size_category(999) == "n<1K"
+    assert _size_category(1_000) == "1K<n<10K"
+    assert _size_category(9_999) == "1K<n<10K"
+    assert _size_category(10_000) == "10K<n<100K"
+    assert _size_category(99_999) == "10K<n<100K"
+    assert _size_category(100_000) == "100K<n<1M"
