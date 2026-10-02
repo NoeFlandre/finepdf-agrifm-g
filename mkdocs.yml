@@ -11,6 +11,7 @@ nav:
   - Relevance policy: relevance-policy.md
   - Automatic quality contract: labelling.md
   - Known limitations: known-limitations.md
+  - Glossary: glossary.md
   - Decisions:
       - ADR-0001 Scope and architecture: adr/0001-poc-scope-and-architecture.md
       - ADR-0002 FinePDF access: adr/0002-finepdf-access-via-parquet-row-groups.md
