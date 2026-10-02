@@ -4,40 +4,45 @@
 
 ## Context
 
-The published baseline contained 2,934 images from 30,000 sampled FinePDF documents. Of those,
-2,670 had no caption, so caption rules could not provide broad coverage. A historical labeled
-diagnostic set contained 567 images: the cheap appearance rules rejected only 44, all labeled
-negative, while 523 labeled negatives still survived. The reviewed classes included charts,
-diagrams, icons, screenshots, text pages, and unrelated images. The existing document-level text
-classifier cannot distinguish those image types inside an otherwise agricultural paper.
+The published baseline had 2,934 images from 30,000 sampled FinePDF documents. Of these images,
+2,670 had no caption. Thus, caption rules could not give broad coverage.
 
-The supplied examples also expose two pixel-filter misses: antialiased two-tone placeholders can
-have many exact RGB values, and dense page scans just below the former edge-density cutoff can
-escape the page-scan rule.
+A historical labeled diagnostic set had 567 images. The cheap appearance rules rejected only 44
+images. All 44 were labeled negative. But 523 labeled negatives stayed. The reviewed classes
+included charts, diagrams, icons, screenshots, text pages, and unrelated images. The existing
+document-level text classifier cannot distinguish these image types inside an agricultural paper.
+
+The supplied examples also show two pixel-filter misses:
+
+- Antialiased two-tone placeholders can have many exact RGB values.
+- Dense page scans just below the former edge-density cutoff can pass the page-scan rule.
 
 ## Decision
 
-Keep the document text gate and conventional/sustainable split assignment unchanged. Strengthen the
-cheap image checks with coarse RGB colour bins and a modestly more tolerant grayscale page-scan
-check. Then, after cheap checks and global duplicate removal, run a pinned CPU-only
-`openai/clip-vit-base-patch32` checkpoint against three fixed prompt groups: agricultural photos,
+Keep the document text gate and the conventional/sustainable split assignment unchanged.
+Strengthen the cheap image checks with coarse RGB colour bins and a slightly more tolerant
+grayscale page-scan check.
+
+Then run a pinned CPU-only `openai/clip-vit-base-patch32` checkpoint. Run it after the cheap
+checks and the global duplicate removal. It uses three fixed prompt groups: agricultural photos,
 document figures, and unrelated photos.
 
 Remove an image only if its agriculture-photo preference is at most 0.12 and one negative-class
 preference is at least 0.66. Keep uncertain cases. Captions and document text are never model
-inputs. Publish the model scores and run configuration, and run the committed keep/reject image
-examples before fetching PDFs.
+inputs. Publish the model scores and the run configuration. Run the committed keep/reject image
+examples before the pipeline fetches PDFs.
 
-All inference, model downloads, dependency caches, and the temporary virtual environment run on the
-reserved Grid'5000 node. They use a job-specific node-local temporary directory that is removed on
-exit; only checkpoints, logs, receipts, and publish artifacts remain in the run directory.
+All inference, model downloads, dependency caches, and the temporary virtual environment run on
+the reserved Grid'5000 node. They use a job-specific node-local temporary directory. The run
+removes this directory on exit. Only checkpoints, logs, receipts, and publish artifacts stay in
+the run directory.
 
 ## Consequences
 
-- Page scans and simple placeholders are caught before model inference.
-- Charts, tables, maps, and unrelated figures can be removed independently of captions.
-- Borderline agricultural images remain, preserving recall and visual diversity.
-- The filter is a conservative screen, not a calibrated guarantee; its scores and drop counts are
-  visible for future evaluation.
-- The historical labeled diagnostic set is not consulted by the production build. Runtime
-  filtering requires no human labeling or review.
+- The pipeline catches page scans and simple placeholders before model inference.
+- The pipeline can remove charts, tables, maps, and unrelated figures without captions.
+- Borderline agricultural images stay. This keeps recall and visual diversity.
+- The filter is a conservative screen. It is not a calibrated guarantee. Its scores and drop
+  counts are visible for future evaluation.
+- The production build does not use the historical labeled diagnostic set. The runtime filtering
+  needs no human labeling or review.

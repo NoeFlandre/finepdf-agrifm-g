@@ -1,17 +1,33 @@
 # AGRIFM-G
 
-AGRIFM-G is a reproducible, fully automatic pipeline that turns English FinePDF documents into two agriculture image splits.
+AGRIFM-G is a reproducible and fully automatic pipeline. It converts English FinePDF documents into two agriculture image splits.
 
 ## Split contract
 
-`conventional` covers operational and conventional agriculture: tractors, harvesters, tillage, irrigation equipment, silos, barns, farm vehicles, crop production, and related farm work.
+`conventional` covers operational and conventional agriculture. It includes tractors, harvesters, tillage, irrigation equipment, silos, barns, farm vehicles, crop production, and related farm work.
 
-`sustainable` covers sustainable and alternative agriculture: permaculture, agroecology, agroforestry, hydroponics, aquaponics, organic and regenerative farming, conservation practices, composting, and related systems.
+`sustainable` covers sustainable and alternative agriculture. It includes permaculture, agroecology, agroforestry, hydroponics, aquaponics, organic and regenerative farming, conservation practices, composting, and related systems.
 
-Documents are classified from their text with extended English lexicons. A tie or missing category evidence is discarded, so no image is present in both splits. Usable embedded raster images are considered without requiring captions. Cheap pixel checks remove obvious blanks and scans; a pinned zero-shot CLIP screen then removes only confidently document-like or unrelated images. Borderline images remain, and captions or document text are not model inputs.
+The pipeline classifies each document from its text. It uses extended English lexicons. It discards a document if the scores are equal or if there is no category evidence. Thus, no image is in both splits. The pipeline considers the usable embedded raster images. A caption is not necessary.
 
-The visual screen can still make mistakes: it is a conservative filter, not a calibrated classifier. It removes invalid, tiny, single-colour, nearly blank, overwhelmingly flat-colour, near-uniform placeholders, dense page-shaped grayscale scans, extreme aspect ratios, and duplicate bytes. Full-page colour photographs remain eligible; model revision, scores, and drop counts are recorded.
+## Image checks
 
-Heavy scaled extraction runs on Grid’5000 with resumable row-group checkpoints. The local machine handles orchestration and final artifact verification.
+Cheap pixel checks remove the obvious blank images and scans. Then a pinned zero-shot CLIP screen removes only the images that are confidently document-like or unrelated. Borderline images stay in the dataset. The model does not use captions or document text as input.
 
-Start with the [quickstart](quickstart.md), then read the [schema](schema.md) and [known limitations](known-limitations.md).
+The visual screen can make mistakes. It is a conservative filter. It is not a calibrated classifier. It removes these items:
+
+- invalid images and tiny images;
+- single-colour images and nearly blank images;
+- images that are overwhelmingly flat-colour;
+- near-uniform placeholders;
+- dense page-shaped grayscale scans;
+- images with extreme aspect ratios;
+- duplicate bytes.
+
+Full-page colour photographs stay eligible. The pipeline records the model revision, the scores, and the drop counts.
+
+## Where the work runs
+
+The heavy scaled extraction runs on Grid’5000. It uses resumable row-group checkpoints. The local machine does the orchestration and the final artifact verification.
+
+Start with the [quickstart](quickstart.md). Then read the [schema](schema.md), the [known limitations](known-limitations.md), and the [glossary](glossary.md).

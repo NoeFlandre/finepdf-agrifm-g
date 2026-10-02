@@ -1,6 +1,6 @@
 # Dataset schema
 
-The Hub dataset exposes two splits: `conventional` and `sustainable`. Both use the same schema and contain one row per retained embedded raster image.
+The Hub dataset has two splits: `conventional` and `sustainable`. Both splits use the same schema. Each row is one retained embedded raster image.
 
 ```python
 from datasets import load_dataset
@@ -34,8 +34,18 @@ dataset["sustainable"][0]
 
 ## Selection
 
-The broad lexicon is used before fetching to avoid downloading clearly unrelated documents. A passing document is assigned to the category with the stronger exact-match score from the extended conventional and sustainable lexicons. Ties and documents with no category evidence are dropped. All embedded images from accepted documents are then considered.
+The pipeline uses the broad lexicon before it fetches documents. This prevents the download of clearly unrelated documents. The pipeline assigns a passing document to the category that has the stronger exact-match score. It uses the extended conventional and sustainable lexicons. It drops ties. It also drops documents that have no category evidence. Then the pipeline considers all embedded images from the accepted documents.
 
-Visual checks remove invalid or tiny images, single-colour and nearly blank images, overwhelmingly flat-colour images, near-uniform low-colour placeholders, dense page-shaped grayscale scans, extreme aspect ratios, and exact duplicates. A pinned CLIP model then compares farm photography with document figures and unrelated photos; only confident negatives are removed, and uncertain images stay. The three reported scores are model preferences, not calibrated probabilities.
+The visual checks remove these items:
 
-The PDFs themselves are not redistributed. URLs and hashes preserve provenance, but source availability and licensing are not guaranteed.
+- invalid images and tiny images;
+- single-colour images and nearly blank images;
+- overwhelmingly flat-colour images;
+- near-uniform low-colour placeholders;
+- dense page-shaped grayscale scans;
+- extreme aspect ratios;
+- exact duplicates.
+
+Then a pinned CLIP model compares farm photography with document figures and unrelated photos. The pipeline removes only confident negatives. Uncertain images stay. The three reported scores are model preferences. They are not calibrated probabilities.
+
+The pipeline does not redistribute the PDFs. The URLs and the hashes keep the provenance. Source availability and licensing are not guaranteed.

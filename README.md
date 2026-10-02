@@ -2,18 +2,26 @@
 
 This repository builds an English-only image dataset from [FinePDF](https://huggingface.co/datasets/HuggingFaceFW/finepdfs).
 
-> **Work in progress — prototype only, not a final dataset.** This iteration may be incomplete or contain mistakes. Its contents, labels, splits, and filters are provisional and may change. It is for experimentation only, not a validated or production-ready resource.
+> **Work in progress. This is a prototype only. It is not a final dataset.** This version can be incomplete or contain errors. The contents, labels, splits, and filters are provisional and can change. Use it for experiments only. It is not a validated or production-ready resource.
 
-The current prototype snapshot has two mutually exclusive, provisional splits:
+The current prototype snapshot has two splits. The splits are provisional. A document is in only one split.
 
 - `conventional`: tractors, machinery, silos, farm buildings, field operations, and other conventional or industrial agriculture scenes.
 - `sustainable`: permaculture, agroecology, agroforestry, hydroponics, organic and regenerative practices, and related sustainable-farm scenes.
 
-The pipeline is fully automatic. It applies a broad text gate, assigns each accepted document with extended category lexicons, and extracts embedded raster images. Cheap pixel checks remove blank, near-solid, and page-shaped grayscale scans; a pinned zero-shot CLIP screen then removes only confidently document-like or unrelated images. Uncertain images remain for diversity. Captions are optional metadata and never a filter.
+The pipeline is fully automatic. It does these steps:
+
+1. It applies a broad text gate.
+2. It assigns each accepted document to a category. It uses extended category lexicons.
+3. It extracts the embedded raster images.
+4. Cheap pixel checks remove blank images, near-solid images, and page-shaped grayscale scans.
+5. A pinned zero-shot CLIP screen removes only the images that are confidently document-like or unrelated.
+
+The pipeline keeps uncertain images for diversity. A caption is optional metadata. A caption is never a filter.
 
 ## Local checks
 
-Local PDF work is limited to the fixture-only smoke test; full builds run on Grid’5000:
+On the local machine, do only the fixture-only smoke test. Full builds run on Grid’5000:
 
 ```bash
 make smoke-offline
@@ -21,7 +29,7 @@ make smoke-offline
 
 ## Run the scaled build on Grid’5000
 
-Heavy PDF work runs only inside one reserved Grid’5000 node. The Mac submits, monitors, fetches, and verifies the artifact:
+Heavy PDF work runs only inside one reserved Grid’5000 node. The Mac submits the job, monitors it, fetches the artifact, and verifies it:
 
 ```bash
 uv run python -m scripts.grid5000 preflight
@@ -30,7 +38,9 @@ uv run python -m scripts.grid5000 status --run-id <run-id>
 uv run python -m scripts.grid5000 fetch --run-id <run-id>
 ```
 
-The runner checks the usage policy before and after submission, requests bounded CPU resources, checkpoints each row group atomically, and refuses duplicate active submissions. Clean up a completed remote run only after local receipt and dataset verification:
+The runner checks the usage policy before and after the submission. It requests bounded CPU resources. It saves a checkpoint for each row group in one atomic step. It refuses duplicate active submissions.
+
+WARNING: Do not clean up a remote run before you fetch it. Clean up a completed remote run only after you receive it locally and verify the dataset:
 
 ```bash
 uv run python -m scripts.grid5000 cleanup \
@@ -47,15 +57,15 @@ dataset["conventional"][0]
 dataset["sustainable"][0]
 ```
 
-The card and viewer are generated from the same parquet files and statistics. Each row includes the decoded `image`, `agriculture_split`, model preference scores, source document text, optional caption, provenance URL, and content hashes.
+The card and the viewer come from the same parquet files and statistics. Each row has these items: the decoded `image`, `agriculture_split`, the model preference scores, the source document text, the optional caption, the provenance URL, and the content hashes.
 
-Run the local quality gates with:
+To run the local quality gates, do this command:
 
 ```bash
 make qa
 ```
 
-See [the quickstart](docs/quickstart.md), [the schema](docs/schema.md), and [the limitations](docs/known-limitations.md) for details.
+For more data, read [the quickstart](docs/quickstart.md), [the schema](docs/schema.md), [the limitations](docs/known-limitations.md), and [the glossary](docs/glossary.md).
 
 ## Layout
 
