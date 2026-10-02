@@ -103,3 +103,42 @@ def test_a_document_without_images_is_not_counted_as_having_them():
     stats = build_stats([record(), record("d2", (image(),))], sampled=2, dropped={}, seed=1)
     assert stats["documents"]["with_images"] == 1
     assert stats["documents"]["built"] == 2
+
+
+def split_record(doc_id, split, images=()):
+    return DocumentRecord(
+        doc_id=doc_id,
+        source_url="u",
+        pdf_path="p",
+        pdf_sha256="b" * 64,
+        text="t",
+        images=images,
+        agriculture_split=split,
+    )
+
+
+def test_split_statistics_count_documents_documents_with_images_and_images():
+    records = [
+        split_record(
+            "a", "conventional", (image(sha="1" * 64), image(sha="2" * 64, path="images/d/001.png"))
+        ),
+        split_record("b", "conventional"),
+        split_record("c", "sustainable", (image(sha="3" * 64),)),
+        split_record("d", "unknown-split", (image(sha="4" * 64),)),
+    ]
+
+    splits = build_stats(records, sampled=4, dropped={}, seed=1)["splits"]
+
+    assert splits == {
+        "conventional": {"documents": 2, "with_images": 1, "images": 2},
+        "sustainable": {"documents": 1, "with_images": 1, "images": 1},
+    }
+
+
+def test_split_statistics_start_at_zero_for_every_split():
+    splits = build_stats([], sampled=0, dropped={}, seed=1)["splits"]
+
+    assert splits == {
+        "conventional": {"documents": 0, "with_images": 0, "images": 0},
+        "sustainable": {"documents": 0, "with_images": 0, "images": 0},
+    }
