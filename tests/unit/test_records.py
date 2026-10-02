@@ -167,3 +167,12 @@ def test_non_ascii_text_is_stored_as_utf8_not_escaped():
         images=(),
     )
     assert "blé récolté 麦" in record_to_json(record)
+
+
+def test_model_scores_are_rounded_to_six_places_and_none_is_preserved():
+    from agrifm_g.domain.records import _rounded_score
+
+    assert _rounded_score(None) is None
+    assert _rounded_score(0.12345649) == 0.123456
+    assert _rounded_score(0.1234565001) == 0.123457
+    assert _rounded_score(0.0) == 0.0
