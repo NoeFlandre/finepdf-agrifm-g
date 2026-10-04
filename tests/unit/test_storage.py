@@ -1,10 +1,18 @@
+import hashlib
 import json
 
 import pytest
 
 from agrifm_g.adapters.extraction import ExtractedImage
-from agrifm_g.adapters.storage import DocumentPayload, existing_files, read_records, write_dataset
+from agrifm_g.adapters.storage import (
+    DocumentPayload,
+    existing_files,
+    file_hashes,
+    read_records,
+    write_dataset,
+)
 from agrifm_g.domain.records import EXTRACTION_VERSION
+from agrifm_g.domain.verification import verify_records
 
 
 def payload(doc_id="<urn:uuid:AB>", n_images=1):
@@ -20,7 +28,7 @@ def payload(doc_id="<urn:uuid:AB>", n_images=1):
                 height=100,
                 format="png",
                 data=b"\x89PNG" + bytes([i]),
-                sha256=str(i) * 64,
+                sha256=hashlib.sha256(b"\x89PNG" + bytes([i])).hexdigest(),
                 n_colours=30000,
                 dominant_colour_share=0.02,
                 near_white_share=0.02,
@@ -62,6 +70,17 @@ def test_every_referenced_file_exists_after_writing(tmp_path):
     records = write_dataset(tmp_path, [payload(n_images=3)])
     present = existing_files(tmp_path)
     assert all(image.path in present for record in records for image in record.images)
+
+
+def test_file_hashes_verify_stored_image_bytes(tmp_path):
+    records = write_dataset(tmp_path, [payload()])
+
+    hashes = file_hashes(tmp_path)
+    record = records[0]
+    image = record.images[0]
+
+    assert hashes[image.path] == image.sha256
+    assert verify_records(records, existing_files(tmp_path), hashes) == []
 
 
 def test_colliding_document_ids_are_refused(tmp_path):

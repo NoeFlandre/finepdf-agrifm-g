@@ -1,3 +1,4 @@
+import hashlib
 import json
 from dataclasses import replace
 
@@ -27,7 +28,7 @@ def a_dataset(path):
                         near_white_share=0.02,
                         edge_density=0.25,
                         data=b"\x89PNG",
-                        sha256="a" * 64,
+                        sha256=hashlib.sha256(b"\x89PNG").hexdigest(),
                         n_colours=6,
                     ),
                 ),
