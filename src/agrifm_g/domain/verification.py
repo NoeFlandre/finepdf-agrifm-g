@@ -27,10 +27,30 @@ def verify_records(
 
 
 def _hash_problems(record: DocumentRecord, hashes: Mapping[str, str]) -> list[str]:
-    actual = hashes.get(record.pdf_path)
-    if actual is None or actual == record.pdf_sha256:
-        return []
-    return [f"{record.doc_id}: pdf checksum mismatch for {record.pdf_path}"]
+    problems: list[str] = []
+    pdf_problem = _checksum_problem(
+        record.doc_id, "pdf", record.pdf_path, record.pdf_sha256, hashes
+    )
+    if pdf_problem is not None:
+        problems.append(pdf_problem)
+    for image in record.images:
+        image_problem = _checksum_problem(record.doc_id, "image", image.path, image.sha256, hashes)
+        if image_problem is not None:
+            problems.append(image_problem)
+    return problems
+
+
+def _checksum_problem(
+    doc_id: str,
+    artifact_type: str,
+    path: str,
+    expected_hash: str,
+    hashes: Mapping[str, str],
+) -> str | None:
+    actual_hash = hashes.get(path)
+    if actual_hash is None or actual_hash == expected_hash:
+        return None
+    return f"{doc_id}: {artifact_type} checksum mismatch for {path}"
 
 
 def _duplicate_problems(record: DocumentRecord, seen: set[str]) -> list[str]:

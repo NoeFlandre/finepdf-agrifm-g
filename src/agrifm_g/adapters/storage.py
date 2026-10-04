@@ -105,8 +105,11 @@ def _reject_collisions(records: Sequence[DocumentRecord]) -> None:
 
 
 def file_hashes(out_dir: Path) -> dict[str, str]:
-    """SHA-256 of every stored PDF, keyed by dataset-relative path."""
+    """SHA-256 of every stored PDF and image, keyed by dataset-relative path."""
+    directories = (out_dir / "pdfs", out_dir / "images")
     return {
         str(path.relative_to(out_dir)): hashlib.sha256(path.read_bytes()).hexdigest()
-        for path in (out_dir / "pdfs").glob("*.pdf")
+        for directory in directories
+        for path in sorted(directory.rglob("*"))
+        if path.is_file()
     }
